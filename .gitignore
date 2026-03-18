@@ -22,3 +22,39 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+# DO NOT COMMIT THESE
+.metadata/
+RemoteSystemsTempFiles/
+.recommenders/
+
+# Xtext Generated Code
+**/src-gen/
+**/xtend-gen/
+**/model/generated/
+
+# Build artifacts
+bin/
+target/
+
+# Java/Build
+*.class
+bin/
+target/
+
+# Eclipse Metadata
+.metadata/
+.recommenders/
+*.log
+.settings/
+# Note: Some teams prefer to commit .project and .classpath 
+# but for Xtext, they are often derived.
+
+# Xtext Generated Code (The Big Ones)
+**/src-gen/
+**/xtend-gen/
+**/model/generated/
+.antlr-generator-state
+
+# OS Specific
+.DS_Store
+Thumbs.db
