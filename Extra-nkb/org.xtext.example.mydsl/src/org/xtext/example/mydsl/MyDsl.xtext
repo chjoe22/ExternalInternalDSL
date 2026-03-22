@@ -1,0 +1,42 @@
+grammar org.xtext.example.mydsl.MyDsl with org.eclipse.xtext.common.Terminals
+
+generate myDsl "http://www.xtext.org/example/mydsl/MyDsl"
+
+Model:
+	player=Player explore=Explore?;
+	
+Player:
+	'player' name=ID '{' pokemons+=Pokemon* '}' ; 
+
+Pokemon:
+	('pokemon' | 'wild_pokemon')
+	name=ID
+	'hp' hp=INT
+	'attack' attack=INT
+	;
+
+RandomItem:
+	
+	'random_item' name=ID 
+;
+
+Encounter:
+	'encounter' '{' 
+	pokemon=Pokemon
+	actions+= Action+ '}'
+	
+;
+Action:
+	'action' ('attack'| 'catch' |'flee')
+;
+
+
+Explore:
+	'explore' '{' events+=ExploreEvent+ '}'
+	
+;
+
+ExploreEvent:
+	RandomItem | Encounter
+    
+;
