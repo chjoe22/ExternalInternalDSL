@@ -8,8 +8,8 @@
 			contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
 			default="true"
 			extensions="pokemon"
-			id="org.xtext.external.pokemon.MyDsl"
-			name="MyDsl Editor">
+			id="org.xtext.external.Pokemon"
+			name="Pokemon Editor">
 		</editor>
 	</extension>
 	<extension
@@ -19,16 +19,16 @@
 			commandId="org.eclipse.xtext.ui.editor.hyperlinking.OpenDeclaration">
 			<activeWhen>
 				<reference
-					definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					definitionId="org.xtext.external.Pokemon.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
 		<handler
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.handler.ValidateActionHandler"
-			commandId="org.xtext.external.pokemon.MyDsl.validate">
+			commandId="org.xtext.external.Pokemon.validate">
 			<activeWhen>
 				<reference
-					definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					definitionId="org.xtext.external.Pokemon.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -37,7 +37,7 @@
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedNameHandler"
 			commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName">
 			<activeWhen>
-				<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened" />
+				<reference definitionId="org.xtext.external.Pokemon.Editor.opened" />
 			</activeWhen>
 		</handler>
 		<handler
@@ -45,7 +45,7 @@
 			commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.OutlineCopyQualifiedName">
 			<activeWhen>
 				<and>
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.XtextEditor.opened" />
+					<reference definitionId="org.xtext.external.Pokemon.XtextEditor.opened" />
 					<iterate>
 						<adapt type="org.eclipse.xtext.ui.editor.outline.IOutlineNode" />
 					</iterate>
@@ -54,22 +54,22 @@
 		</handler>
 	</extension>
 	<extension point="org.eclipse.core.expressions.definitions">
-		<definition id="org.xtext.external.pokemon.MyDsl.Editor.opened">
+		<definition id="org.xtext.external.Pokemon.Editor.opened">
 			<and>
 				<reference definitionId="isActiveEditorAnInstanceOfXtextEditor"/>
 				<with variable="activeEditor">
 					<test property="org.eclipse.xtext.ui.editor.XtextEditor.languageName"
-						value="org.xtext.external.pokemon.MyDsl"
+						value="org.xtext.external.Pokemon"
 						forcePluginActivation="true"/>
 				</with>
 			</and>
 		</definition>
-		<definition id="org.xtext.external.pokemon.MyDsl.XtextEditor.opened">
+		<definition id="org.xtext.external.Pokemon.XtextEditor.opened">
 			<and>
 				<reference definitionId="isXtextEditorActive"/>
 				<with variable="activeEditor">
 					<test property="org.eclipse.xtext.ui.editor.XtextEditor.languageName"
-						value="org.xtext.external.pokemon.MyDsl"
+						value="org.xtext.external.Pokemon"
 						forcePluginActivation="true"/>
 				</with>
 			</and>
@@ -79,32 +79,32 @@
 			point="org.eclipse.ui.preferencePages">
 		<page
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl"
-			name="MyDsl">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			id="org.xtext.external.Pokemon"
+			name="Pokemon">
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.syntaxcoloring.SyntaxColoringPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.coloring"
+			id="org.xtext.external.Pokemon.coloring"
 			name="Syntax Coloring">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.templates.XtextTemplatePreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.templates"
+			id="org.xtext.external.Pokemon.templates"
 			name="Templates">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 	</extension>
 	<extension
 			point="org.eclipse.ui.propertyPages">
 		<page
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl"
-			name="MyDsl">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			id="org.xtext.external.Pokemon"
+			name="Pokemon">
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -114,14 +114,14 @@
 	<extension
 		point="org.eclipse.ui.keywords">
 		<keyword
-			id="org.xtext.external.pokemon.ui.keyword_MyDsl"
-			label="MyDsl"/>
+			id="org.xtext.external.ui.keyword_Pokemon"
+			label="Pokemon"/>
 	</extension>
 	<extension
 		point="org.eclipse.ui.commands">
 		<command
 			description="Trigger expensive validation"
-			id="org.xtext.external.pokemon.MyDsl.validate"
+			id="org.xtext.external.Pokemon.validate"
 			name="Validate">
 		</command>
 		<!-- copy qualified name -->
@@ -142,12 +142,12 @@
 		<menuContribution
 			locationURI="popup:#TextEditorContext?after=group.edit">
 			<command
-				commandId="org.xtext.external.pokemon.MyDsl.validate"
+				commandId="org.xtext.external.Pokemon.validate"
 				style="push"
 				tooltip="Trigger expensive validation">
 				<visibleWhen checkEnabled="false">
 					<reference
-						definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+						definitionId="org.xtext.external.Pokemon.Editor.opened">
 					</reference>
 				</visibleWhen>
 			</command>
@@ -157,7 +157,7 @@
 			<command commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName"
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened" />
+					<reference definitionId="org.xtext.external.Pokemon.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
@@ -165,7 +165,7 @@
 			<command commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName"
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened" />
+					<reference definitionId="org.xtext.external.Pokemon.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
@@ -174,7 +174,7 @@
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
 					<and>
-						<reference definitionId="org.xtext.external.pokemon.MyDsl.XtextEditor.opened" />
+						<reference definitionId="org.xtext.external.Pokemon.XtextEditor.opened" />
 						<iterate>
 							<adapt type="org.eclipse.xtext.ui.editor.outline.IOutlineNode" />
 						</iterate>
@@ -187,7 +187,7 @@
 		<menuContribution locationURI="popup:#TextEditorContext?endof=group.find">
 			<command commandId="org.eclipse.xtext.ui.editor.FindReferences">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					<reference definitionId="org.xtext.external.Pokemon.Editor.opened">
 					</reference>
 				</visibleWhen>
 			</command>
@@ -199,7 +199,7 @@
 			commandId="org.eclipse.xtext.ui.editor.FindReferences">
 			<activeWhen>
 				<reference
-					definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					definitionId="org.xtext.external.Pokemon.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -208,8 +208,8 @@
 		<content-type
 			base-type="org.eclipse.core.runtime.text"
 			file-extensions="pokemon"
-			id="org.xtext.external.pokemon.MyDsl.contenttype"
-			name="MyDsl File"
+			id="org.xtext.external.Pokemon.contenttype"
+			name="Pokemon File"
 			priority="normal">
 		</content-type>
 	</extension>
@@ -227,35 +227,35 @@
 			uriExtension="pokemon">
 		</resourceServiceProvider>
 	</extension>
-	<!-- marker definitions for org.xtext.external.pokemon.MyDsl -->
+	<!-- marker definitions for org.xtext.external.Pokemon -->
 	<extension
-			id="mydsl.check.fast"
-			name="MyDsl Problem"
+			id="pokemon.check.fast"
+			name="Pokemon Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.fast"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="mydsl.check.normal"
-			name="MyDsl Problem"
+			id="pokemon.check.normal"
+			name="Pokemon Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.normal"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="mydsl.check.expensive"
-			name="MyDsl Problem"
+			id="pokemon.check.expensive"
+			name="Pokemon Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.expensive"/>
 		<persistent value="true"/>
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.validation.ValidatorPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.validator.preferencePage"
+			id="org.xtext.external.Pokemon.validator.preferencePage"
 			name="Errors/Warnings">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.xtext.builder.participant">
@@ -265,20 +265,20 @@
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.compiler.preferencePage"
+			id="org.xtext.external.Pokemon.compiler.preferencePage"
 			name="Compiler">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.ui.propertyPages">
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.compiler.propertyPage"
+			id="org.xtext.external.Pokemon.compiler.propertyPage"
 			name="Compiler">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -289,10 +289,10 @@
 		<menuContribution locationURI="popup:#TextEditorContext?after=xtext.ui.openDeclaration">
 			<command
 				commandId="org.eclipse.xtext.ui.OpenGeneratedFileCommand"
-				id="org.xtext.external.pokemon.MyDsl.OpenGeneratedCode"
+				id="org.xtext.external.Pokemon.OpenGeneratedCode"
 				style="push">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened" />
+					<reference definitionId="org.xtext.external.Pokemon.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
@@ -302,7 +302,7 @@
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.generator.trace.OpenGeneratedFileHandler"
 			commandId="org.eclipse.xtext.ui.OpenGeneratedFileCommand">
 			<activeWhen>
-				<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened" />
+				<reference definitionId="org.xtext.external.Pokemon.Editor.opened" />
 			</activeWhen>
 		</handler>
 	</extension>
@@ -314,7 +314,7 @@
 			commandId="org.eclipse.xtext.ui.editor.outline.QuickOutline">
 			<activeWhen>
 				<reference
-					definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					definitionId="org.xtext.external.Pokemon.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -334,17 +334,17 @@
 				style="push"
 				tooltip="Open Quick Outline">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened"/>
+					<reference definitionId="org.xtext.external.Pokemon.Editor.opened"/>
 				</visibleWhen>
 			</command>
 		</menuContribution>
 	</extension>
-	<!-- quickfix marker resolution generator for org.xtext.external.pokemon.MyDsl -->
+	<!-- quickfix marker resolution generator for org.xtext.external.Pokemon -->
 	<extension
 			point="org.eclipse.ui.ide.markerResolution">
 		<markerResolutionGenerator
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.xtext.external.pokemon.ui.mydsl.check.fast">
+			markerType="org.xtext.external.pokemon.ui.pokemon.check.fast">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -352,7 +352,7 @@
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.xtext.external.pokemon.ui.mydsl.check.normal">
+			markerType="org.xtext.external.pokemon.ui.pokemon.check.normal">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -360,7 +360,7 @@
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.xtext.external.pokemon.ui.mydsl.check.expensive">
+			markerType="org.xtext.external.pokemon.ui.pokemon.check.expensive">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -374,7 +374,7 @@
 			commandId="org.eclipse.xtext.ui.refactoring.RenameElement">
 			<activeWhen>
 				<reference
-					definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+					definitionId="org.xtext.external.Pokemon.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -386,7 +386,7 @@
 				style="push">
 				<visibleWhen checkEnabled="false">
 					<reference
-						definitionId="org.xtext.external.pokemon.MyDsl.Editor.opened">
+						definitionId="org.xtext.external.Pokemon.Editor.opened">
 					</reference>
 				</visibleWhen>
 			</command>
@@ -394,33 +394,33 @@
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.xtext.external.pokemon.MyDsl"
+			category="org.xtext.external.Pokemon"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.RefactoringPreferencePage"
-			id="org.xtext.external.pokemon.MyDsl.refactoring"
+			id="org.xtext.external.Pokemon.refactoring"
 			name="Refactoring">
-			<keywordReference id="org.xtext.external.pokemon.ui.keyword_MyDsl"/>
+			<keywordReference id="org.xtext.external.ui.keyword_Pokemon"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.compare.contentViewers">
-		<viewer id="org.xtext.external.pokemon.MyDsl.compare.contentViewers"
+		<viewer id="org.xtext.external.Pokemon.compare.contentViewers"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
 			extensions="pokemon">
 		</viewer>
 		<contentTypeBinding
-			contentTypeId="org.xtext.external.pokemon.MyDsl.contenttype"
-			contentViewerId="org.xtext.external.pokemon.MyDsl.compare.contentViewers" />
+			contentTypeId="org.xtext.external.Pokemon.contenttype"
+			contentViewerId="org.xtext.external.Pokemon.compare.contentViewers" />
 	</extension>
 	<extension point="org.eclipse.compare.contentMergeViewers">
-		<viewer id="org.xtext.external.pokemon.MyDsl.compare.contentMergeViewers"
+		<viewer id="org.xtext.external.Pokemon.compare.contentMergeViewers"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
-			extensions="pokemon" label="MyDsl Compare">
+			extensions="pokemon" label="Pokemon Compare">
 		</viewer>
 		<contentTypeBinding
-			contentTypeId="org.xtext.external.pokemon.MyDsl.contenttype"
-			contentMergeViewerId="org.xtext.external.pokemon.MyDsl.compare.contentMergeViewers" />
+			contentTypeId="org.xtext.external.Pokemon.contenttype"
+			contentMergeViewerId="org.xtext.external.Pokemon.compare.contentMergeViewers" />
 	</extension>
 	<extension point="org.eclipse.ui.editors.documentProviders">
-		<provider id="org.xtext.external.pokemon.MyDsl.editors.documentProviders"
+		<provider id="org.xtext.external.Pokemon.editors.documentProviders"
 			class="org.xtext.external.ui.PokemonExecutableExtensionFactory:org.eclipse.xtext.ui.editor.model.XtextDocumentProvider"
 			extensions="pokemon">
 		</provider>

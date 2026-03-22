@@ -18,7 +18,16 @@ Require-Bundle: org.xtext.external.pokemon,
  org.eclipse.xtext.builder
 Import-Package: org.apache.log4j
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Export-Package: org.xtext.example.mydsl.ui.contentassist,
+Export-Package: org.xtext.example.mydsl.ui,
+ org.xtext.example.mydsl.ui.contentassist,
+ org.xtext.example.mydsl.ui.labeling,
+ org.xtext.example.mydsl.ui.outline,
+ org.xtext.example.mydsl.ui.quickfix,
  org.xtext.external.pokemon.ui.internal,
- org.xtext.example.mydsl.ui.quickfix
+ org.xtext.external.ui,
+ org.xtext.external.ui.contentassist,
+ org.xtext.external.ui.labeling,
+ org.xtext.external.ui.outline,
+ org.xtext.external.ui.quickfix,
+ org.xtext.external.validation
 Bundle-Activator: org.xtext.external.pokemon.ui.internal.PokemonActivator

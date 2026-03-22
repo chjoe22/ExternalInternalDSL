@@ -1,6 +1,6 @@
-grammar org.xtext.example.mydsl.MyDsl with org.eclipse.xtext.common.Terminals
+grammar org.xtext.external.Pokemon with org.eclipse.xtext.common.Terminals
 
-generate myDsl "http://www.xtext.org/example/mydsl/MyDsl"
+generate pokemon "http://www.xtext.org/external/Pokemon"
 
 Model:
     ( players+=Player | explore+=Explore | pokemon+=Pokemon | move+=Move | trainer+=Trainer)*

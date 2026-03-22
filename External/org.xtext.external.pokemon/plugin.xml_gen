@@ -3,8 +3,8 @@
 <plugin>
 	<extension point="org.eclipse.emf.ecore.generated_package">
 		<package
-			uri = "http://www.xtext.org/example/mydsl/MyDsl"
-			class = "org.xtext.example.mydsl.myDsl.MyDslPackage"
-			genModel = "model/generated/MyDsl.genmodel" />
+			uri = "http://www.xtext.org/external/Pokemon"
+			class = "org.xtext.external.pokemon.PokemonPackage"
+			genModel = "model/generated/Pokemon.genmodel" />
 	</extension>
 </plugin>

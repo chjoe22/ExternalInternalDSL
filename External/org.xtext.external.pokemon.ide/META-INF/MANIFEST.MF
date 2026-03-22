@@ -12,4 +12,6 @@ Require-Bundle: org.xtext.external.pokemon,
  org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Export-Package: org.xtext.example.mydsl.ide.contentassist.antlr,
- org.xtext.example.mydsl.ide.contentassist.antlr.internal
+ org.xtext.example.mydsl.ide.contentassist.antlr.internal,
+ org.xtext.external.ide.contentassist.antlr.internal,
+ org.xtext.external.ide.contentassist.antlr
