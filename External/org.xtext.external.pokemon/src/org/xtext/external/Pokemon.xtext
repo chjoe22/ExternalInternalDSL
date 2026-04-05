@@ -36,31 +36,43 @@ Move:
 ;
 
 Explore:
-    'explore' '{' events+=Event+ '}'
-    
+    'explore' '{' routes+=Route+ '}'
+;
+
+Route:
+    'route' name=ID
+    (description=STRING)?
+    '{'
+        events+=Event+
+        ('exits' '(' exits+=[Route] (',' exits+=[Route])* ')')?
+    '}'
 ;
 
 Event:
-    RandomItem | Battle | HealingCenter
-;
-
-Battle:
-	WildEncounter | TrainerBattle
+    WildEncounter | TrainerBattle | RandomItem | HealingCenter
 ;
 
 WildEncounter:
-    'encounter' name=ID 'wild'  wildPokemon=[Pokemon] '{' (actions+= Action)* ('win' 'goto' winNext=[Event])? ('lose' 'goto' loseNext=[Event])? '}'
-    
+    {WildEncounter} 'encounter' name=ID 'wild' wildPokemon=[Pokemon] '{'
+        (actions+=Action)*
+        ('win'  'goto' winNext=[Route])?
+        ('lose' 'goto' loseNext=[Route])?
+    '}'
 ;
 
 TrainerBattle:
-	'battle' name=ID 'vs' opponent=[Trainer] '{' ('win' 'goto' winNext=[Event])? ('lose' 'goto' loseNext=[Event])? '}'
+    {TrainerBattle} 'battle' name=ID 'vs' opponent=[Trainer] '{'
+        ('win'  'goto' winNext=[Route])?
+        ('lose' 'goto' loseNext=[Route])?
+    '}'
 ;
 
 RandomItem:
-    'random_item' name=ID 'found' quantity=INT description=STRING ('then' 'goto' next=[Event])?
+    {RandomItem} 'random_item' name=ID 'found' quantity=INT description=STRING
+    ('then' 'goto' next=[Route])?
 ;
 
 HealingCenter:
-	'heal' name=ID 'at' description=STRING ('then' 'goto' next=[Event])?
+    {HealingCenter} 'heal' name=ID 'at' description=STRING
+    ('then' 'goto' next=[Route])?
 ;
