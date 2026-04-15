@@ -7,19 +7,93 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.xtext.example.mydsl.myDsl.Model
+import org.xtext.example.mydsl.myDsl.Player
+import org.xtext.example.mydsl.myDsl.Pokemon
+import org.xtext.example.mydsl.myDsl.Move
+import org.xtext.example.mydsl.myDsl.Trainer
+import org.xtext.example.mydsl.myDsl.Explore
+import org.xtext.example.mydsl.myDsl.WildEncounter
+import org.xtext.example.mydsl.myDsl.TrainerBattle
+import org.xtext.example.mydsl.myDsl.RandomItem
+import org.xtext.example.mydsl.myDsl.HealingCenter
 
-/**
- * Generates code from your model files on save.
- * 
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
- */
 class MyDslGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-//		fsa.generateFile('greetings.txt', 'People to greet: ' + 
-//			resource.allContents
-//				.filter(Greeting)
-//				.map[name]
-//				.join(', '))
+		val model = resource.contents.head as Model
+		
+
+		fsa.generateFile("game-summary.txt", model.compileSummary)
+		
+
+		for (p : model.pokemon) {
+			fsa.generateFile("pokemon/" + p.name + ".txt", p.compilePokemon)
+		}
+		
+
+		for (t : model.trainer) {
+			fsa.generateFile("trainers/" + t.name + ".txt", t.compileTrainer)
+		}
 	}
+
+	def compileSummary(Model model) '''
+		
+		
+		Players:
+		«FOR p : model.players»
+		- «p.name» (money: «p.money»)
+		  Party: «FOR poke : p.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		«ENDFOR»
+		
+		Trainers:
+		«FOR t : model.trainer»
+		- «t.name»
+		  Party: «FOR poke : t.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		«ENDFOR»
+		
+		Pokemon:
+		«FOR p : model.pokemon»
+		- «p.name» | lvl «p.lvl» | type «p.type»
+		«ENDFOR»
+		
+		Moves:
+		«FOR m : model.move»
+		- «m.name» | type «m.type» | power «m.power» | accuracy «m.acc» | pp «m.pp»
+		«ENDFOR»
+		
+		Explore Sections:
+		«FOR e : model.explore»
+		- explore block with «e.events.size» events
+		«ENDFOR»
+	'''
+
+	def compilePokemon(Pokemon p) '''
+		Pokemon: «p.name»
+		Wild: «IF p.isWild»yes«ELSE»no«ENDIF»
+		Level: «p.lvl»
+		Type: «p.type»
+		
+		Stats:
+		- HP: «p.hp»
+		- Attack: «p.attack»
+		- Defense: «p.defense»
+		- Sp. Atk: «p.spatk»
+		- Sp. Def: «p.spdef»
+		- Speed: «p.speed»
+		
+		Moves:
+		«FOR m : p.moves»
+		- «m.name»
+		«ENDFOR»
+	'''
+
+	def compileTrainer(Trainer t) '''
+		Trainer: «t.name»
+		
+		Party:
+		«FOR p : t.team»
+		- «p.name»
+		«ENDFOR»
+	'''
 }
