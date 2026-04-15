@@ -9,6 +9,8 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.xtext.dsl.pokemon.Pokemon
 import org.xtext.dsl.pokemon.Move
+import org.xtext.dsl.pokemon.Model
+import org.xtext.dsl.pokemon.Trainer
 
 /**
  * Generates code from your model files on save.
@@ -51,5 +53,82 @@ class PokemonGenerator extends AbstractGenerator {
 				}
 			''')
 		}
+		
+		val model = resource.contents.head as Model
+		
+
+		fsa.generateFile("game-summary.txt", model.compileSummary)
+		
+
+		for (p : model.pokemon) {
+			fsa.generateFile("pokemon/" + p.name + ".txt", p.compilePokemon)
+		}
+		
+
+		for (t : model.trainer) {
+			fsa.generateFile("trainers/" + t.name + ".txt", t.compileTrainer)
+		}
 	}
+
+	def compileSummary(Model model) '''
+		
+		
+		Players:
+		«FOR p : model.players»
+		- «p.name» (money: «p.money»)
+		  Party: «FOR poke : p.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		«ENDFOR»
+		
+		Trainers:
+		«FOR t : model.trainer»
+		- «t.name»
+		  Party: «FOR poke : t.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		«ENDFOR»
+		
+		Pokemon:
+		«FOR p : model.pokemon»
+		- «p.name» | lvl «p.lvl» | type «p.type»
+		«ENDFOR»
+		
+		Moves:
+		«FOR m : model.move»
+		- «m.name» | type «m.type» | power «m.power» | accuracy «m.acc» | pp «m.pp»
+		«ENDFOR»
+		
+		Explore Sections:
+		«FOR e : model.explore»
+		- explore block with «e.events.size» events
+		«ENDFOR»
+	'''
+
+	def compilePokemon(Pokemon p) '''
+		Pokemon: «p.name»
+		Wild: «IF p.isWild»yes«ELSE»no«ENDIF»
+		Level: «p.lvl»
+		Type: «p.type»
+		
+		Stats:
+		- HP: «p.hp»
+		- Attack: «p.attack»
+		- Defense: «p.defense»
+		- Sp. Atk: «p.spatk»
+		- Sp. Def: «p.spdef»
+		- Speed: «p.speed»
+		
+		Moves:
+		«FOR m : p.moves»
+		- «m.name»
+		«ENDFOR»
+	'''
+
+	def compileTrainer(Trainer t) '''
+		Trainer: «t.name»
+		
+		Party:
+		«FOR p : t.team»
+		- «p.name»
+		«ENDFOR»
+	'''
+		
+	
 }
