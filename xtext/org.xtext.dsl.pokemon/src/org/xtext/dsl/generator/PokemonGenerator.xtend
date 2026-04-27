@@ -97,7 +97,10 @@ class PokemonGenerator extends AbstractGenerator {
 		
 		Explore Sections:
 		«FOR e : model.explore»
-		- explore block with «e.events.size» events
+		- explore block with «e.routes.size» routes
+		«FOR r : e.routes»
+		  - route «r.name» with «r.events.size» events
+		«ENDFOR»
 		«ENDFOR»
 	'''
 
