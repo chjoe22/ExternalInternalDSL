@@ -11,21 +11,20 @@ import org.xtext.dsl.pokemon.Pokemon
 import org.xtext.dsl.pokemon.Move
 import org.xtext.dsl.pokemon.Model
 import org.xtext.dsl.pokemon.Trainer
+import org.xtext.dsl.pokemon.Event
+import org.xtext.dsl.pokemon.WildEncounter
+import org.xtext.dsl.pokemon.TrainerBattle
+import org.xtext.dsl.pokemon.RandomItem
+import org.xtext.dsl.pokemon.HealingCenter
 
 /**
  * Generates code from your model files on save.
- * 
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
 class PokemonGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-//		fsa.generateFile('greetings.txt', 'People to greet: ' + 
-//			resource.allContents
-//				.filter(Greeting)
-//				.map[name]
-//				.join(', '))
-		for (pokemon : resource.allContents.toIterable.filter(Pokemon)){
+
+		for (pokemon : resource.allContents.toIterable.filter(Pokemon)) {
 			fsa.generateFile(pokemon.name + ".java", '''
 				public class «pokemon.name» {
 					public int hp = «pokemon.hp»;
@@ -34,40 +33,73 @@ class PokemonGenerator extends AbstractGenerator {
 					public int spatk = «pokemon.spatk»;
 					public int spdef = «pokemon.spdef»;
 					public int speed = «pokemon.speed»;
-					public String type = «pokemon.type»;
+					public String type = "«pokemon.type»";
 					public int lvl = «pokemon.lvl»;
 					
-					public void printStats(){
+					public void printStats() {
 						System.out.println("Health Points : " + hp);
 					}
 				}
 			''')
 		}
-		for (move : resource.allContents.toIterable.filter(Move)){
-			fsa.generateFile(move.name + ".java",'''
+
+		for (move : resource.allContents.toIterable.filter(Move)) {
+			fsa.generateFile(move.name + ".java", '''
 				public class «move.name» {
 					public int power = «move.power»;
 					public int acc = «move.acc»;
 					public int pp = «move.pp»;
-					public String type = «move.type»;
+					public String type = "«move.type»";
 				}
 			''')
 		}
-		
+
 		val model = resource.contents.head as Model
-		
 
 		fsa.generateFile("game-summary.txt", model.compileSummary)
-		
+		fsa.generateFile("Game.java", model.compileGame)
+
+		fsa.generateFile("org/xtext/dsl/runtime/GameEvent.java", compileGameEvent)
+		fsa.generateFile("org/xtext/dsl/runtime/GameRoute.java", compileGameRoute)
+		fsa.generateFile("org/xtext/dsl/runtime/GameRuntime.java", compileGameRuntime)
+		fsa.generateFile("org/xtext/dsl/runtime/PlayerPokemon.java", compilePlayerPokemon)
+		fsa.generateFile("org/xtext/dsl/runtime/WildPokemonCandidate.java", compileWildPokemonCandidate)
+		fsa.generateFile("org/xtext/dsl/runtime/BattleEvent.java", compileBattleEvent)
+		fsa.generateFile("org/xtext/dsl/runtime/WildEncounterEvent.java", compileWildEncounterEvent)
+		fsa.generateFile("org/xtext/dsl/runtime/TrainerBattleEvent.java", compileTrainerBattleEvent)
+		fsa.generateFile("org/xtext/dsl/runtime/RandomItemEvent.java", compileRandomItemEvent)
+		fsa.generateFile("org/xtext/dsl/runtime/HealingCenterEvent.java", compileHealingCenterEvent)
 
 		for (p : model.pokemon) {
 			fsa.generateFile("pokemon/" + p.name + ".txt", p.compilePokemon)
 		}
-		
 
 		for (t : model.trainer) {
 			fsa.generateFile("trainers/" + t.name + ".txt", t.compileTrainer)
 		}
+	}
+
+	def getAllPokemon(Model model) {
+		model.eResource.resourceSet.resources
+			.map[allContents.toIterable.filter(Pokemon)]
+			.flatten
+			.toList
+	}
+
+	def boolean isUsedInAnyStartingParty(Pokemon pokemon, Model model) {
+		for (player : model.players) {
+			if (player.team.exists[p | p.name == pokemon.name]) {
+				return true
+			}
+		}
+
+		for (trainer : model.trainer) {
+			if (trainer.team.exists[p | p.name == pokemon.name]) {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	def compileSummary(Model model) '''
@@ -86,7 +118,7 @@ class PokemonGenerator extends AbstractGenerator {
 		«ENDFOR»
 		
 		Pokemon:
-		«FOR p : model.pokemon»
+		«FOR p : model.allPokemon»
 		- «p.name» | lvl «p.lvl» | type «p.type»
 		«ENDFOR»
 		
@@ -132,6 +164,854 @@ class PokemonGenerator extends AbstractGenerator {
 		- «p.name»
 		«ENDFOR»
 	'''
-		
-	
+
+	def compileGame(Model model) '''
+		import java.util.*;
+		import org.xtext.dsl.runtime.*;
+
+		public class Game {
+			public static void main(String[] args) {
+				GameRuntime runtime = new GameRuntime();
+
+				«FOR player : model.players»
+					«FOR pokemon : player.team»
+						runtime.addStartingPokemon("«pokemon.name»", «pokemon.hp», «pokemon.attack»);
+					«ENDFOR»
+				«ENDFOR»
+
+				runtime.printParty();
+
+				«FOR explore : model.explore»
+					«FOR route : explore.routes»
+						GameRoute «route.name» = new GameRoute(
+							"«route.name»",
+							«IF route.description !== null»"«route.description»"«ELSE»""«ENDIF»
+						);
+
+						«FOR event : route.events»
+							«event.compileEvent(route.name, model)»
+						«ENDFOR»
+
+						«FOR exit : route.exits»
+							«route.name».addExit("«exit.name»");
+						«ENDFOR»
+
+						runtime.addRoute(«route.name»);
+					«ENDFOR»
+				«ENDFOR»
+
+				«IF !model.explore.empty && !model.explore.head.routes.empty»
+					runtime.setStartRoute("«model.explore.head.routes.head.name»");
+				«ENDIF»
+
+				runtime.start();
+			}
+		}
+	'''
+
+	def CharSequence compileEvent(Event event, String routeVariableName, Model model) {
+		if (event instanceof WildEncounter) {
+			return event.compileWildEncounter(routeVariableName, model)
+		}
+
+		if (event instanceof TrainerBattle) {
+			return event.compileTrainerBattle(routeVariableName, model)
+		}
+
+		if (event instanceof RandomItem) {
+			return event.compileRandomItem(routeVariableName)
+		}
+
+		if (event instanceof HealingCenter) {
+			return event.compileHealingCenter(routeVariableName)
+		}
+
+		return ''''''
+	}
+
+	def compileWildEncounter(WildEncounter event, String routeVariableName, Model model) '''
+		{
+			List<WildPokemonCandidate> candidates = new ArrayList<>();
+
+			«FOR pokemon : model.allPokemon»
+				«IF !pokemon.isUsedInAnyStartingParty(model)»
+					candidates.add(new WildPokemonCandidate(
+						"«pokemon.name»",
+						«pokemon.hp»,
+						«pokemon.attack»
+					));
+				«ENDIF»
+			«ENDFOR»
+
+			«routeVariableName».addEvent(new WildEncounterEvent(
+				"«event.name»",
+				candidates,
+				«event.catchable»,
+				«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
+				«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
+			));
+		}
+	'''
+
+	def compileTrainerBattle(TrainerBattle event, String routeVariableName, Model model) '''
+		«IF !event.opponent.team.empty»
+			«val opponentPokemon = event.opponent.team.head»
+			«routeVariableName».addEvent(new TrainerBattleEvent(
+				"«event.name»",
+				"«event.opponent.name»",
+				"«opponentPokemon.name»",
+				«opponentPokemon.hp»,
+				«opponentPokemon.attack»,
+				«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
+				«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
+			));
+		«ENDIF»
+	'''
+
+	def compileRandomItem(RandomItem event, String routeVariableName) '''
+		«routeVariableName».addEvent(new RandomItemEvent(
+			"«event.name»",
+			«event.quantity»,
+			"«event.description»",
+			«IF event.next !== null»"«event.next.name»"«ELSE»null«ENDIF»
+		));
+	'''
+
+	def compileHealingCenter(HealingCenter event, String routeVariableName) '''
+		«routeVariableName».addEvent(new HealingCenterEvent(
+			"«event.name»",
+			"«event.description»",
+			«IF event.next !== null»"«event.next.name»"«ELSE»null«ENDIF»
+		));
+	'''
+
+	def compileGameEvent() '''
+		package org.xtext.dsl.runtime;
+
+		public interface GameEvent {
+			String play(GameRuntime runtime);
+		}
+	'''
+
+	def compileGameRoute() '''
+		package org.xtext.dsl.runtime;
+
+		import java.util.*;
+
+		public class GameRoute {
+			private final String name;
+			private final String description;
+			private final List<GameEvent> events = new ArrayList<>();
+			private final List<String> exits = new ArrayList<>();
+
+			public GameRoute(String name, String description) {
+				this.name = name;
+				this.description = description;
+			}
+
+			public void addEvent(GameEvent event) {
+				events.add(event);
+			}
+
+			public void addExit(String routeName) {
+				exits.add(routeName);
+			}
+
+			public String getName() {
+				return name;
+			}
+
+			public String getDescription() {
+				return description;
+			}
+
+			public List<GameEvent> getEvents() {
+				return events;
+			}
+
+			public List<String> getExits() {
+				return exits;
+			}
+		}
+	'''
+
+	def compilePlayerPokemon() '''
+		package org.xtext.dsl.runtime;
+
+		public class PlayerPokemon {
+			private final String name;
+			private final int maxHp;
+			private int currentHp;
+			private int attack;
+
+			public PlayerPokemon(String name, int maxHp, int attack) {
+				this.name = name;
+				this.maxHp = maxHp;
+				this.currentHp = maxHp;
+				this.attack = attack;
+			}
+
+			public PlayerPokemon(String name, int maxHp, int currentHp, int attack) {
+				this.name = name;
+				this.maxHp = maxHp;
+				this.currentHp = currentHp;
+				this.attack = attack;
+
+				if (this.currentHp < 0) {
+					this.currentHp = 0;
+				}
+
+				if (this.currentHp > this.maxHp) {
+					this.currentHp = this.maxHp;
+				}
+			}
+
+			public String getName() {
+				return name;
+			}
+
+			public int getMaxHp() {
+				return maxHp;
+			}
+
+			public int getCurrentHp() {
+				return currentHp;
+			}
+
+			public int getAttack() {
+				return attack;
+			}
+
+			public boolean isFainted() {
+				return currentHp <= 0;
+			}
+
+			public void takeDamage(int damage) {
+				currentHp -= damage;
+
+				if (currentHp < 0) {
+					currentHp = 0;
+				}
+			}
+
+			public void heal() {
+				currentHp = maxHp;
+			}
+
+			public void healAmount(int amount) {
+				currentHp += amount;
+
+				if (currentHp > maxHp) {
+					currentHp = maxHp;
+				}
+			}
+
+			public void increaseAttack(int amount) {
+				attack += amount;
+			}
+		}
+	'''
+
+	def compileWildPokemonCandidate() '''
+		package org.xtext.dsl.runtime;
+
+		public class WildPokemonCandidate {
+			public final String name;
+			public final int hp;
+			public final int attack;
+
+			public WildPokemonCandidate(String name, int hp, int attack) {
+				this.name = name;
+				this.hp = hp;
+				this.attack = attack;
+			}
+		}
+	'''
+
+	def compileGameRuntime() '''
+		package org.xtext.dsl.runtime;
+
+		import java.util.*;
+
+		public class GameRuntime {
+			private final Scanner scanner = new Scanner(System.in);
+			private final Map<String, GameRoute> routes = new LinkedHashMap<>();
+			private final List<PlayerPokemon> playerParty = new ArrayList<>();
+			private final Map<String, Integer> inventory = new LinkedHashMap<>();
+			private GameRoute currentRoute;
+
+			public void addRoute(GameRoute route) {
+				routes.put(route.getName(), route);
+			}
+
+			public void addStartingPokemon(String pokemonName, int maxHp, int attack) {
+				playerParty.add(new PlayerPokemon(pokemonName, maxHp, attack));
+			}
+
+			public void addToParty(String pokemonName, int maxHp, int currentHp, int attack) {
+				if (hasPokemonInParty(pokemonName)) {
+					print(pokemonName + " is already in your party.");
+					return;
+				}
+
+				playerParty.add(new PlayerPokemon(pokemonName, maxHp, currentHp, attack));
+				print(pokemonName + " was added to your party.");
+			}
+
+			public boolean hasPokemonInParty(String pokemonName) {
+				for (PlayerPokemon pokemon : playerParty) {
+					if (pokemon.getName().equals(pokemonName)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			public void addItem(String itemName, int quantity) {
+				inventory.put(itemName, inventory.getOrDefault(itemName, 0) + quantity);
+				print("Added " + quantity + " x " + itemName + " to inventory.");
+			}
+
+			public PlayerPokemon getFirstAlivePokemon() {
+				for (PlayerPokemon pokemon : playerParty) {
+					if (!pokemon.isFainted()) {
+						return pokemon;
+					}
+				}
+
+				return null;
+			}
+
+			public boolean hasAlivePokemon() {
+				return getFirstAlivePokemon() != null;
+			}
+
+			public void healParty() {
+				for (PlayerPokemon pokemon : playerParty) {
+					pokemon.heal();
+				}
+
+				print("Your Pokemon have been healed.");
+			}
+
+			public void printParty() {
+				if (playerParty.isEmpty()) {
+					print("Your party is currently empty.");
+					return;
+				}
+
+				print("Your current party:");
+				for (int i = 0; i < playerParty.size(); i++) {
+					PlayerPokemon pokemon = playerParty.get(i);
+					print((i + 1) + ". " + pokemon.getName()
+						+ " HP: " + pokemon.getCurrentHp() + "/" + pokemon.getMaxHp()
+						+ " Attack: " + pokemon.getAttack());
+				}
+			}
+
+			public void printInventory() {
+				if (inventory.isEmpty()) {
+					print("Your inventory is empty.");
+					return;
+				}
+
+				boolean hasVisibleItems = false;
+
+				for (Map.Entry<String, Integer> item : inventory.entrySet()) {
+					if (item.getValue() > 0) {
+						hasVisibleItems = true;
+					}
+				}
+
+				if (!hasVisibleItems) {
+					print("Your inventory is empty.");
+					return;
+				}
+
+				print("Inventory:");
+				for (Map.Entry<String, Integer> item : inventory.entrySet()) {
+					if (item.getValue() > 0) {
+						print("- " + item.getKey() + " x" + item.getValue());
+					}
+				}
+			}
+
+			public void openInventory() {
+				List<String> availableItems = new ArrayList<>();
+
+				for (Map.Entry<String, Integer> item : inventory.entrySet()) {
+					if (item.getValue() > 0) {
+						availableItems.add(item.getKey());
+					}
+				}
+
+				if (availableItems.isEmpty()) {
+					print("Your inventory is empty.");
+					return;
+				}
+
+				print("");
+				printInventory();
+				print("");
+				print("Choose an item to use:");
+
+				for (int i = 0; i < availableItems.size(); i++) {
+					print((i + 1) + ". " + availableItems.get(i));
+				}
+
+				print("0. Cancel");
+
+				int itemChoice = readChoice(0, availableItems.size());
+
+				if (itemChoice == 0) {
+					print("Cancelled inventory.");
+					return;
+				}
+
+				String itemName = availableItems.get(itemChoice - 1);
+
+				PlayerPokemon target = choosePokemon();
+
+				if (target == null) {
+					print("No Pokemon selected.");
+					return;
+				}
+
+				useItem(itemName, target);
+			}
+
+			private PlayerPokemon choosePokemon() {
+				if (playerParty.isEmpty()) {
+					print("You have no Pokemon.");
+					return null;
+				}
+
+				print("");
+				print("Choose a Pokemon:");
+
+				for (int i = 0; i < playerParty.size(); i++) {
+					PlayerPokemon pokemon = playerParty.get(i);
+					print((i + 1) + ". " + pokemon.getName()
+						+ " HP: " + pokemon.getCurrentHp() + "/" + pokemon.getMaxHp()
+						+ " Attack: " + pokemon.getAttack());
+				}
+
+				print("0. Cancel");
+
+				int choice = readChoice(0, playerParty.size());
+
+				if (choice == 0) {
+					return null;
+				}
+
+				return playerParty.get(choice - 1);
+			}
+
+			private void useItem(String itemName, PlayerPokemon target) {
+				int quantity = inventory.getOrDefault(itemName, 0);
+
+				if (quantity <= 0) {
+					print("You do not have any " + itemName + ".");
+					return;
+				}
+
+				if (itemName.equals("Potion")) {
+					target.healAmount(50);
+					print(target.getName() + " recovered 50 HP.");
+				} else if (itemName.equals("SuperPotion")) {
+					target.healAmount(100);
+					print(target.getName() + " recovered 100 HP.");
+				} else if (itemName.equals("AttackPotion")) {
+					target.increaseAttack(5);
+					print(target.getName() + " gained +5 attack.");
+				} else {
+					print(itemName + " cannot be used right now.");
+					return;
+				}
+
+				inventory.put(itemName, quantity - 1);
+				printParty();
+			}
+
+			public void setStartRoute(String routeName) {
+				currentRoute = routes.get(routeName);
+
+				if (currentRoute == null) {
+					System.out.println("Start route not found: " + routeName);
+				}
+			}
+
+			public void start() {
+				System.out.println("Welcome to the Pokemon Interactive Fiction Game!");
+
+				if (currentRoute == null) {
+					System.out.println("No start route selected.");
+					return;
+				}
+
+				while (currentRoute != null) {
+					showCurrentRoute();
+					handleRoute();
+				}
+
+				System.out.println("Game ended.");
+			}
+
+			private void showCurrentRoute() {
+				System.out.println();
+				System.out.println("=== " + currentRoute.getName() + " ===");
+
+				if (currentRoute.getDescription() != null && !currentRoute.getDescription().isEmpty()) {
+					System.out.println(currentRoute.getDescription());
+				}
+			}
+
+			private void handleRoute() {
+				List<GameEvent> events = currentRoute.getEvents();
+
+				for (GameEvent event : events) {
+					String nextRoute = event.play(this);
+
+					if (nextRoute != null && routes.containsKey(nextRoute)) {
+						currentRoute = routes.get(nextRoute);
+						return;
+					}
+				}
+
+				chooseExit();
+			}
+
+			private void chooseExit() {
+				List<String> exits = currentRoute.getExits();
+
+				if (exits.isEmpty()) {
+					System.out.println("There are no more exits from this route.");
+					currentRoute = null;
+					return;
+				}
+
+				while (true) {
+					System.out.println();
+					System.out.println("Where do you want to go?");
+
+					for (int i = 0; i < exits.size(); i++) {
+						System.out.println((i + 1) + ". " + exits.get(i));
+					}
+
+					System.out.println("0. Open inventory");
+
+					int choice = readChoice(0, exits.size());
+
+					if (choice == 0) {
+						openInventory();
+					} else {
+						currentRoute = routes.get(exits.get(choice - 1));
+						return;
+					}
+				}
+			}
+
+			public String chooseAction(List<String> actions) {
+				System.out.println();
+				System.out.println("Choose an action:");
+
+				for (int i = 0; i < actions.size(); i++) {
+					System.out.println((i + 1) + ". " + actions.get(i));
+				}
+
+				int choice = readChoice(1, actions.size());
+				return actions.get(choice - 1);
+			}
+
+			private int readChoice(int min, int max) {
+				while (true) {
+					System.out.print("> ");
+
+					try {
+						int choice = Integer.parseInt(scanner.nextLine());
+
+						if (choice >= min && choice <= max) {
+							return choice;
+						}
+					} catch (NumberFormatException e) {
+						// invalid input
+					}
+
+					System.out.println("Invalid choice. Try again.");
+				}
+			}
+
+			public void print(String text) {
+				System.out.println(text);
+			}
+		}
+	'''
+
+	def compileBattleEvent() '''
+		package org.xtext.dsl.runtime;
+
+		import java.util.List;
+
+		public abstract class BattleEvent implements GameEvent {
+			protected String enemyPokemonName;
+			protected int enemyStartHp;
+			protected int enemyAttack;
+
+			protected final String winNext;
+			protected final String loseNext;
+
+			public BattleEvent(
+					String enemyPokemonName,
+					int enemyStartHp,
+					int enemyAttack,
+					String winNext,
+					String loseNext
+			) {
+				this.enemyPokemonName = enemyPokemonName;
+				this.enemyStartHp = enemyStartHp;
+				this.enemyAttack = enemyAttack;
+				this.winNext = winNext;
+				this.loseNext = loseNext;
+			}
+
+			protected String runBattle(GameRuntime runtime, String enemyLabel, boolean allowCatch, boolean catchable) {
+				int enemyHp = enemyStartHp;
+
+				PlayerPokemon playerPokemon = runtime.getFirstAlivePokemon();
+
+				if (playerPokemon == null) {
+					runtime.print("You have no Pokemon able to battle.");
+					return loseNext;
+				}
+
+				runtime.print(playerPokemon.getName() + " vs " + enemyLabel + " " + enemyPokemonName);
+
+				while (runtime.hasAlivePokemon() && enemyHp > 0) {
+					playerPokemon = runtime.getFirstAlivePokemon();
+
+					runtime.print("");
+					runtime.print(playerPokemon.getName() + " HP: " + playerPokemon.getCurrentHp() + "/" + playerPokemon.getMaxHp());
+					runtime.print(enemyPokemonName + " HP: " + enemyHp);
+
+					List<String> actions = allowCatch
+							? List.of("attack", "catch", "flee")
+							: List.of("attack", "flee");
+
+					String action = runtime.chooseAction(actions);
+
+					if (action.equals("flee")) {
+						runtime.print("You fled.");
+						return loseNext;
+					}
+
+					if (action.equals("catch")) {
+						String result = tryCatch(runtime, catchable, enemyHp);
+
+						if (result != null) {
+							return result;
+						}
+					}
+
+					if (action.equals("attack")) {
+						runtime.print(playerPokemon.getName() + " attacks and deals " + playerPokemon.getAttack() + " damage!");
+						enemyHp -= playerPokemon.getAttack();
+
+						if (enemyHp <= 0) {
+							runtime.print(enemyPokemonName + " fainted.");
+							runtime.print("You won the battle.");
+							return winNext;
+						}
+					}
+
+					runtime.print(enemyPokemonName + " attacks and deals " + enemyAttack + " damage!");
+					playerPokemon.takeDamage(enemyAttack);
+
+					if (playerPokemon.isFainted()) {
+						runtime.print(playerPokemon.getName() + " fainted.");
+
+						PlayerPokemon nextPokemon = runtime.getFirstAlivePokemon();
+
+						if (nextPokemon != null) {
+							runtime.print("Go, " + nextPokemon.getName() + "!");
+						} else {
+							runtime.print("All your Pokemon have fainted.");
+							return loseNext;
+						}
+					}
+				}
+
+				return loseNext;
+			}
+
+			protected String tryCatch(GameRuntime runtime, boolean catchable, int currentEnemyHp) {
+				runtime.print("Catching is not available in this battle.");
+				return null;
+			}
+		}
+	'''
+
+	def compileWildEncounterEvent() '''
+		package org.xtext.dsl.runtime;
+
+		import java.util.*;
+
+		public class WildEncounterEvent extends BattleEvent {
+			private final String name;
+			private final boolean catchable;
+			private final List<WildPokemonCandidate> candidates;
+			private final Random random = new Random();
+
+			public WildEncounterEvent(
+					String name,
+					List<WildPokemonCandidate> candidates,
+					boolean catchable,
+					String winNext,
+					String loseNext
+			) {
+				super("", 0, 0, winNext, loseNext);
+
+				this.name = name;
+				this.candidates = candidates;
+				this.catchable = catchable;
+			}
+
+			@Override
+			public String play(GameRuntime runtime) {
+				List<WildPokemonCandidate> availableCandidates = new ArrayList<>();
+
+				for (WildPokemonCandidate candidate : candidates) {
+					if (!runtime.hasPokemonInParty(candidate.name)) {
+						availableCandidates.add(candidate);
+					}
+				}
+
+				if (availableCandidates.isEmpty()) {
+					runtime.print("No available wild Pokemon appeared.");
+					return loseNext;
+				}
+
+				WildPokemonCandidate chosenPokemon =
+						availableCandidates.get(random.nextInt(availableCandidates.size()));
+
+				this.enemyPokemonName = chosenPokemon.name;
+				this.enemyStartHp = chosenPokemon.hp;
+				this.enemyAttack = chosenPokemon.attack;
+
+				runtime.print("A wild " + enemyPokemonName + " appeared!");
+				return runBattle(runtime, "wild", true, catchable);
+			}
+
+			@Override
+			protected String tryCatch(GameRuntime runtime, boolean catchable, int currentEnemyHp) {
+				if (!catchable) {
+					runtime.print(enemyPokemonName + " cannot be caught.");
+					return null;
+				}
+
+				int catchChance = 50;
+				int roll = random.nextInt(100) + 1;
+
+				runtime.print("You throw a Pokeball...");
+				runtime.print("Catch roll: " + roll + " / " + catchChance);
+
+				if (roll <= catchChance) {
+					runtime.print("You caught " + enemyPokemonName + "!");
+					runtime.addToParty(enemyPokemonName, enemyStartHp, currentEnemyHp, enemyAttack);
+					runtime.printParty();
+					return winNext;
+				}
+
+				runtime.print(enemyPokemonName + " broke free!");
+				return null;
+			}
+		}
+	'''
+
+	def compileTrainerBattleEvent() '''
+		package org.xtext.dsl.runtime;
+
+		public class TrainerBattleEvent extends BattleEvent {
+			private final String name;
+			private final String trainerName;
+
+			public TrainerBattleEvent(
+					String name,
+					String trainerName,
+					String enemyPokemonName,
+					int enemyStartHp,
+					int enemyAttack,
+					String winNext,
+					String loseNext
+			) {
+				super(
+						enemyPokemonName,
+						enemyStartHp,
+						enemyAttack,
+						winNext,
+						loseNext
+				);
+
+				this.name = name;
+				this.trainerName = trainerName;
+			}
+
+			@Override
+			public String play(GameRuntime runtime) {
+				runtime.print("Trainer " + trainerName + " challenges you to a battle!");
+				return runBattle(runtime, trainerName + "'s", false, false);
+			}
+		}
+	'''
+
+	def compileRandomItemEvent() '''
+		package org.xtext.dsl.runtime;
+
+		public class RandomItemEvent implements GameEvent {
+			private final String name;
+			private final int quantity;
+			private final String description;
+			private final String next;
+
+			public RandomItemEvent(String name, int quantity, String description, String next) {
+				this.name = name;
+				this.quantity = quantity;
+				this.description = description;
+				this.next = next;
+			}
+
+			@Override
+			public String play(GameRuntime runtime) {
+				runtime.print("You found " + quantity + " x " + name + ".");
+				runtime.print(description);
+				runtime.addItem(name, quantity);
+				return next;
+			}
+		}
+	'''
+
+	def compileHealingCenterEvent() '''
+		package org.xtext.dsl.runtime;
+
+		public class HealingCenterEvent implements GameEvent {
+			private final String name;
+			private final String description;
+			private final String next;
+
+			public HealingCenterEvent(String name, String description, String next) {
+				this.name = name;
+				this.description = description;
+				this.next = next;
+			}
+
+			@Override
+			public String play(GameRuntime runtime) {
+				runtime.print("Healing center: " + name);
+				runtime.print(description);
+				runtime.healParty();
+				runtime.printParty();
+				return next;
+			}
+		}
+	'''
 }

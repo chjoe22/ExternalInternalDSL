@@ -43,7 +43,7 @@ Route:
     'route' name=ID
     (description=STRING)?
     '{'
-        events+=Event+
+        events+=Event*
         ('exits' '(' exits+=[Route] (',' exits+=[Route])* ')')?
     '}'
 ;
@@ -53,7 +53,7 @@ Event:
 ;
 
 WildEncounter:
-    {WildEncounter} 'encounter' name=ID 'wild' wildPokemon=[Pokemon] '{'
+    {WildEncounter} 'encounter' name=ID 'wild' 'pokemon' (catchable?='catchable')? '{'
         (actions+=Action)*
         ('win'  'goto' winNext=[Route])?
         ('lose' 'goto' loseNext=[Route])?

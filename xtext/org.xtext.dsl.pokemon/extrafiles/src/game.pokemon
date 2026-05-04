@@ -1,0 +1,43 @@
+player Ash {
+    money 500
+    party (Pikachu, Bulbasaur)
+}
+
+trainer YoungsterJoey {
+    party (Charmander, Squirtle)
+}
+
+explore {
+    route StarterTown "You just ventured out of the startertown, ready to explore the world of Pokemon." {
+    random_item Potion found 1 "You received 1 HP-Potion from Professor Oak."
+    random_item AttackPotion found 1 "You received 1 Attack Potion."
+    heal Lab at "Professor Oak's Lab heals your Pokemon for free." then goto TownCrossroad
+}
+
+    route TownCrossroad "You are outside Starter Town. Choose where to go next." {
+        exits (Wilderness, ViridianCity)
+    }
+
+    route Wilderness "You walk into the tall grass." {
+    encounter WildPidgey wild pokemon catchable {
+        action attack -> outcome : "You defeated the wild Pokemon and gained experience."
+        action catch -> outcome : "You throw a Pokeball and catch the pokemon."
+        action flee -> outcome : "You run back from the tall grass."
+        win goto TownCrossroad
+        lose goto TownCrossroad
+    }
+    exits (TownCrossroad)
+}
+
+    route ViridianCity "You arrive in Viridian City. A trainer is waiting for a battle." {
+        battle RouteTrainer vs YoungsterJoey {
+            win goto HealingCenter
+            lose goto TownCrossroad
+        }
+        exits (TownCrossroad)
+    }
+
+    route HealingCenter "You enter the Viridian healing center." {
+        heal ViridianHealingCenter at "Your Pokemon are healed. The healing costs 10 money."
+    }
+}

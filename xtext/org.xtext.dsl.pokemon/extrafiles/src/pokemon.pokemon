@@ -1,0 +1,54 @@
+pokemon Pikachu {
+    hp 300 attack 30 defense 25 sp.atk 50 sp.def 30 speed 50
+    lvl 30 type "Electric" move (Tackle, ThunderShock)
+}
+
+pokemon Charmander {
+    hp 300 attack 35 defense 25 sp.atk 35 sp.def 30 speed 50
+    lvl 20 type "Fire" move (Tackle)
+}
+
+pokemon Bulbasaur {
+    hp 450 attack 25 defense 30 sp.atk 40 sp.def 35 speed 30
+    lvl 18 type "Grass" move (Tackle)
+}
+
+pokemon Squirtle {
+    hp 144 attack 28 defense 35 sp.atk 30 sp.def 35 speed 25
+    lvl 18 type "Water" move (Tackle)
+}
+
+pokemon Rattata {
+    hp 110 attack 22 defense 15 sp.atk 10 sp.def 12 speed 45
+    lvl 7 type "Normal" move (Tackle)
+}
+
+pokemon Caterpie {
+    hp 90 attack 12 defense 12 sp.atk 8 sp.def 10 speed 20
+    lvl 5 type "Bug" move (Tackle)
+}
+
+pokemon Weedle {
+    hp 95 attack 15 defense 10 sp.atk 8 sp.def 10 speed 25
+    lvl 5 type "Bug" move (Tackle)
+}
+
+pokemon Spearow {
+    hp 115 attack 24 defense 14 sp.atk 10 sp.def 12 speed 50
+    lvl 8 type "Flying" move (Tackle)
+}
+
+pokemon Oddish {
+    hp 130 attack 18 defense 20 sp.atk 25 sp.def 25 speed 18
+    lvl 9 type "Grass" move (Tackle)
+}
+
+pokemon Geodude {
+    hp 160 attack 30 defense 45 sp.atk 10 sp.def 20 speed 10
+    lvl 10 type "Rock" move (Tackle)
+}
+
+pokemon God {
+    hp 1000 attack 200 defense 2 sp.atk 35 sp.def 30 speed 50
+    lvl 20 type "Fire" move (Tackle)
+}

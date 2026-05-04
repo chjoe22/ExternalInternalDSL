@@ -1,0 +1,2 @@
+move Tackle type "Normal" power 40 accuracy 100 pp 35
+move ThunderShock type "Electric" power 60 accuracy 100 pp 30
