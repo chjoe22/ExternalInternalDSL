@@ -1,10 +1,10 @@
 player Ash {
     money 500
-    party (Pikachu, Bulbasaur)
+    party (Pikachu lvl 10, Bulbasaur lvl 10)
 }
 
 trainer YoungsterJoey {
-    party (Charmander, Squirtle)
+    party (Charmander lvl 10, Squirtle lvl 10)
 }
 
 explore {
@@ -19,7 +19,7 @@ explore {
     }
 
     route Wilderness "You walk into the tall grass." {
-    encounter WildPidgey wild pokemon catchable {
+    encounter PidgeyBattle wild pokemon Charmander lvl 10 catchable {
         action attack -> outcome : "You defeated the wild Pokemon and gained experience."
         action catch -> outcome : "You throw a Pokeball and catch the pokemon."
         action flee -> outcome : "You run back from the tall grass."

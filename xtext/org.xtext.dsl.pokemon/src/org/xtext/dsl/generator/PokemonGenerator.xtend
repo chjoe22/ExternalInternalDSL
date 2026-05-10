@@ -7,35 +7,57 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.xtext.dsl.pokemon.Pokemon
-import org.xtext.dsl.pokemon.Move
-import org.xtext.dsl.pokemon.Model
-import org.xtext.dsl.pokemon.Trainer
+import org.xtext.dsl.pokemon.Exp
+import org.xtext.dsl.pokemon.Addition
 import org.xtext.dsl.pokemon.Event
-import org.xtext.dsl.pokemon.WildEncounter
-import org.xtext.dsl.pokemon.TrainerBattle
-import org.xtext.dsl.pokemon.RandomItem
 import org.xtext.dsl.pokemon.HealingCenter
+import org.xtext.dsl.pokemon.LvlRef
+import org.xtext.dsl.pokemon.Model
+import org.xtext.dsl.pokemon.Move
+import org.xtext.dsl.pokemon.Multiplication
+import org.xtext.dsl.pokemon.NumVal
+import org.xtext.dsl.pokemon.PokemonDef
+import org.xtext.dsl.pokemon.PokemonInstance
+import org.xtext.dsl.pokemon.RandomItem
+import org.xtext.dsl.pokemon.Trainer
+import org.xtext.dsl.pokemon.TrainerBattle
+import org.xtext.dsl.pokemon.WildEncounter
 
 /**
  * Generates code from your model files on save.
  */
 class PokemonGenerator extends AbstractGenerator {
+	def dispatch CharSequence compileExp(Exp e) '''0'''
+	def dispatch CharSequence compileExp(NumVal e) '''«e.value»'''
+	def dispatch CharSequence compileExp(LvlRef e) '''this.lvl'''
+	def dispatch CharSequence compileExp(Addition e) '''(«e.left.compileExp» «e.op» «e.right.compileExp»)'''
+	def dispatch CharSequence compileExp(Multiplication e) '''(«e.left.compileExp» «e.op» «e.right.compileExp»)'''
+
+	
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
-		for (pokemon : resource.allContents.toIterable.filter(Pokemon)) {
+	
+		for (pokemon : resource.allContents.toIterable.filter(PokemonDef)) {
 			fsa.generateFile(pokemon.name + ".java", '''
 				public class «pokemon.name» {
-					public int hp = «pokemon.hp»;
-					public int attack = «pokemon.attack»;
-					public int defense = «pokemon.defense»;
-					public int spatk = «pokemon.spatk»;
-					public int spdef = «pokemon.spdef»;
-					public int speed = «pokemon.speed»;
-					public String type = "«pokemon.type»";
-					public int lvl = «pokemon.lvl»;
+					public int lvl;
+					public int hp;
+					public int attack;
+					public int defense;
+					public int spatk;
+					public int spdef;
+					public int speed;
+					public String type;
 					
+					public «pokemon.name»(int level){
+						this.lvl = level;
+						this.hp = «compileExp(pokemon.hp)»;
+						this.attack = «compileExp(pokemon.attack)»;
+						this.defense = «compileExp(pokemon.defense)»;
+						this.spatk = «compileExp(pokemon.spatk)»;
+						this.spdef = «compileExp(pokemon.spdef)»;
+						this.speed = «compileExp(pokemon.speed)»;
+					}
 					public void printStats() {
 						System.out.println("Health Points : " + hp);
 					}
@@ -56,23 +78,26 @@ class PokemonGenerator extends AbstractGenerator {
 
 		val model = resource.contents.head as Model
 
-		fsa.generateFile("game-summary.txt", model.compileSummary)
-		fsa.generateFile("Game.java", model.compileGame)
+		if (!model.players.empty || !model.explore.empty){
+			fsa.generateFile("Game.java", model.compileGame)
+			fsa.generateFile("game-summary.txt", model.compileSummary)
 
-		fsa.generateFile("org/xtext/dsl/runtime/GameEvent.java", compileGameEvent)
-		fsa.generateFile("org/xtext/dsl/runtime/GameRoute.java", compileGameRoute)
-		fsa.generateFile("org/xtext/dsl/runtime/GameRuntime.java", compileGameRuntime)
-		fsa.generateFile("org/xtext/dsl/runtime/PlayerPokemon.java", compilePlayerPokemon)
-		fsa.generateFile("org/xtext/dsl/runtime/WildPokemonCandidate.java", compileWildPokemonCandidate)
-		fsa.generateFile("org/xtext/dsl/runtime/BattleEvent.java", compileBattleEvent)
-		fsa.generateFile("org/xtext/dsl/runtime/WildEncounterEvent.java", compileWildEncounterEvent)
-		fsa.generateFile("org/xtext/dsl/runtime/TrainerBattleEvent.java", compileTrainerBattleEvent)
-		fsa.generateFile("org/xtext/dsl/runtime/RandomItemEvent.java", compileRandomItemEvent)
-		fsa.generateFile("org/xtext/dsl/runtime/HealingCenterEvent.java", compileHealingCenterEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/GameEvent.java", compileGameEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/GameRoute.java", compileGameRoute)
+			fsa.generateFile("org/xtext/dsl/runtime/GameRuntime.java", compileGameRuntime)
+			fsa.generateFile("org/xtext/dsl/runtime/PlayerPokemon.java", compilePlayerPokemon)
+			fsa.generateFile("org/xtext/dsl/runtime/WildPokemonCandidate.java", compileWildPokemonCandidate)
+			fsa.generateFile("org/xtext/dsl/runtime/BattleEvent.java", compileBattleEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/WildEncounterEvent.java", compileWildEncounterEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/TrainerBattleEvent.java", compileTrainerBattleEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/RandomItemEvent.java", compileRandomItemEvent)
+			fsa.generateFile("org/xtext/dsl/runtime/HealingCenterEvent.java", compileHealingCenterEvent)
+		}
 
 		for (p : model.pokemon) {
 			fsa.generateFile("pokemon/" + p.name + ".txt", p.compilePokemon)
 		}
+		
 
 		for (t : model.trainer) {
 			fsa.generateFile("trainers/" + t.name + ".txt", t.compileTrainer)
@@ -81,20 +106,20 @@ class PokemonGenerator extends AbstractGenerator {
 
 	def getAllPokemon(Model model) {
 		model.eResource.resourceSet.resources
-			.map[allContents.toIterable.filter(Pokemon)]
+			.map[allContents.toIterable.filter(PokemonDef)]
 			.flatten
 			.toList
 	}
 
-	def boolean isUsedInAnyStartingParty(Pokemon pokemon, Model model) {
+	def boolean isUsedInAnyStartingParty(PokemonDef pokemon, Model model) {
 		for (player : model.players) {
-			if (player.team.exists[p | p.name == pokemon.name]) {
+			if (player.team.exists[inst | inst.species.name == pokemon.name]) {
 				return true
 			}
 		}
 
 		for (trainer : model.trainer) {
-			if (trainer.team.exists[p | p.name == pokemon.name]) {
+			if (trainer.team.exists[inst | inst.species.name == pokemon.name]) {
 				return true
 			}
 		}
@@ -108,18 +133,23 @@ class PokemonGenerator extends AbstractGenerator {
 		Players:
 		«FOR p : model.players»
 		- «p.name» (money: «p.money»)
-		  Party: «FOR poke : p.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		  Party: «FOR inst : p.team SEPARATOR ", "»«inst.species.name» (lvl «inst.level»)«ENDFOR»
 		«ENDFOR»
 		
 		Trainers:
 		«FOR t : model.trainer»
 		- «t.name»
-		  Party: «FOR poke : t.team SEPARATOR ", "»«poke.name»«ENDFOR»
+		  Party: «FOR inst : t.team SEPARATOR ", "»«inst.species.name» (lvl «inst.level»)«ENDFOR»
+		«ENDFOR»
+		
+		Pokedex (Species):
+		«FOR p : model.pokemon»
+		- «p.name» | Type: «p.type»
 		«ENDFOR»
 		
 		Pokemon:
 		«FOR p : model.allPokemon»
-		- «p.name» | lvl «p.lvl» | type «p.type»
+		- «p.name» | type «p.type»
 		«ENDFOR»
 		
 		Moves:
@@ -136,19 +166,26 @@ class PokemonGenerator extends AbstractGenerator {
 		«ENDFOR»
 	'''
 
-	def compilePokemon(Pokemon p) '''
+	def compilePokemon(PokemonDef p) '''
 		Pokemon: «p.name»
 		Wild: «IF p.isWild»yes«ELSE»no«ENDIF»
-		Level: «p.lvl»
 		Type: «p.type»
 		
 		Stats:
-		- HP: «p.hp»
-		- Attack: «p.attack»
-		- Defense: «p.defense»
-		- Sp. Atk: «p.spatk»
-		- Sp. Def: «p.spdef»
-		- Speed: «p.speed»
+		- HP: «compileExp(p.hp)»
+		- Attack: «compileExp(p.attack)»
+		- Defense: «compileExp(p.defense)»
+		- Sp. Atk: «compileExp(p.spatk)»
+		- Sp. Def: «compileExp(p.spdef)»
+		- Speed: «compileExp(p.speed)»
+		
+		Evaluated Stats (at lvl 10):
+		- HP: «evaluate(p.hp, 10)»
+		- Attack: «evaluate(p.attack, 10)»
+		- Defense: «evaluate(p.defense, 10)»
+		- Sp. Atk: «evaluate(p.spatk, 10)»
+		- Sp. Def: «evaluate(p.spdef, 10)»
+		- Speed: «evaluate(p.speed, 10)»
 		
 		Moves:
 		«FOR m : p.moves»
@@ -161,7 +198,7 @@ class PokemonGenerator extends AbstractGenerator {
 		
 		Party:
 		«FOR p : t.team»
-		- «p.name»
+		- «p.species.name» (lvl «p.level») 
 		«ENDFOR»
 	'''
 
@@ -174,8 +211,8 @@ class PokemonGenerator extends AbstractGenerator {
 				GameRuntime runtime = new GameRuntime();
 
 				«FOR player : model.players»
-					«FOR pokemon : player.team»
-						runtime.addStartingPokemon("«pokemon.name»", «pokemon.hp», «pokemon.attack»);
+					«FOR instance : player.team»
+						runtime.addStartingPokemon("«instance.species.name»", «evaluate(instance.species.hp, instance.level)», «evaluate(instance.species.attack, instance.level)»);
 					«ENDFOR»
 				«ENDFOR»
 
@@ -233,35 +270,30 @@ class PokemonGenerator extends AbstractGenerator {
 		{
 			List<WildPokemonCandidate> candidates = new ArrayList<>();
 
-			«FOR pokemon : model.allPokemon»
-				«IF !pokemon.isUsedInAnyStartingParty(model)»
-					candidates.add(new WildPokemonCandidate(
-						"«pokemon.name»",
-						«pokemon.hp»,
-						«pokemon.attack»
-					));
-				«ENDIF»
-			«ENDFOR»
-
+			candidates.add(new WildPokemonCandidate(
+			"«event.pokemon.species.name»",
+			«evaluate(event.pokemon.species.hp, event.pokemon.level)»,
+			«evaluate(event.pokemon.species.attack, event.pokemon.level)»
+			));
 			«routeVariableName».addEvent(new WildEncounterEvent(
-				"«event.name»",
-				candidates,
-				«event.catchable»,
-				«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
-				«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
+			"«event.name»",
+			candidates,
+			«event.catchable»,
+			«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
+			«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
 			));
 		}
 	'''
 
 	def compileTrainerBattle(TrainerBattle event, String routeVariableName, Model model) '''
 		«IF !event.opponent.team.empty»
-			«val opponentPokemon = event.opponent.team.head»
+			«val opponentInstance = event.opponent.team.head»
 			«routeVariableName».addEvent(new TrainerBattleEvent(
 				"«event.name»",
 				"«event.opponent.name»",
-				"«opponentPokemon.name»",
-				«opponentPokemon.hp»,
-				«opponentPokemon.attack»,
+				"«opponentInstance.species.name»",
+				«evaluate(opponentInstance.species.hp, opponentInstance.level)»,
+				«evaluate(opponentInstance.species.attack, opponentInstance.level)»,
 				«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
 				«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
 			));
@@ -1014,4 +1046,19 @@ class PokemonGenerator extends AbstractGenerator {
 			}
 		}
 	'''
+	def dispatch int evaluate(NumVal e, int lvl) { e.value }
+    
+    def dispatch int evaluate(LvlRef e, int lvl) { lvl }
+    
+    def dispatch int evaluate(Addition e, int lvl) {
+        if (e.op == '+') evaluate(e.left, lvl) + evaluate(e.right, lvl)
+        else evaluate(e.left, lvl) - evaluate(e.right, lvl)
+    }
+    
+    def dispatch int evaluate(Multiplication e, int lvl) {
+        if (e.op == '*') evaluate(e.left, lvl) * evaluate(e.right, lvl)
+        else evaluate(e.left, lvl) / evaluate(e.right, lvl)
+    }
+    
+    def dispatch int evaluate(Exp e, int lvl) { 0 }
 }
