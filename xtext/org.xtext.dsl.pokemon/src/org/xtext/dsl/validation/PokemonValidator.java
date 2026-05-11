@@ -3,6 +3,23 @@
  */
 package org.xtext.dsl.validation;
 
+//For wild validation NKB
+import org.eclipse.xtext.validation.Check;
+import org.xtext.dsl.pokemon.Player;
+import org.xtext.dsl.pokemon.Pokemon;
+import org.xtext.dsl.pokemon.PokemonPackage;
+import org.xtext.dsl.pokemon.Trainer;
+
+// For route validation NKB
+import org.xtext.dsl.pokemon.Event;
+import org.xtext.dsl.pokemon.HealingCenter;
+import org.xtext.dsl.pokemon.PokemonPackage;
+import org.xtext.dsl.pokemon.RandomItem;
+import org.xtext.dsl.pokemon.Route;
+import org.xtext.dsl.pokemon.RouteType;
+import org.xtext.dsl.pokemon.TrainerBattle;
+import org.xtext.dsl.pokemon.WildEncounter;
+
 
 /**
  * This class contains custom validation rules. 
@@ -21,5 +38,94 @@ public class PokemonValidator extends AbstractPokemonValidator {
 //					INVALID_NAME);
 //		}
 //	}
+	
+	
+	@Check
+
+    public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
+
+        for (Pokemon pokemon : player.getTeam()) {
+
+            if (pokemon.isIsWild()) {
+
+                error(
+
+                    "Player parties cannot contain Pokemon declared as wild.",
+
+                    PokemonPackage.Literals.PLAYER__TEAM
+
+                );
+
+            }
+
+        }
+
+    }
+
+    @Check
+
+    public void checkTrainerPartyDoesNotContainWildPokemon(Trainer trainer) {
+
+        for (Pokemon pokemon : trainer.getTeam()) {
+
+            if (pokemon.isIsWild()) {
+
+                error(
+
+                    "Trainer parties cannot contain Pokemon declared as wild.",
+
+                    PokemonPackage.Literals.TRAINER__TEAM
+
+                );
+
+            }
+
+        }
+
+    }
+    
+    @Check
+    public void checkRouteEventTypes(Route route) {
+        for (Event event : route.getEvents()) {
+
+            if (event instanceof WildEncounter) {
+                if (route.getType() != RouteType.WILDERNESS
+                        && route.getType() != RouteType.CAVE) {
+                    error(
+                        "Wild encounters are only allowed in wilderness or cave routes.",
+                        PokemonPackage.Literals.ROUTE__EVENTS
+                    );
+                }
+            }
+
+            if (event instanceof HealingCenter) {
+                if (route.getType() != RouteType.TOWN) {
+                    error(
+                        "Healing events are only allowed in town routes.",
+                        PokemonPackage.Literals.ROUTE__EVENTS
+                    );
+                }
+            }
+
+            if (event instanceof TrainerBattle) {
+                if (route.getType() == RouteType.CAVE) {
+                    error(
+                        "Trainer battles are not allowed in cave routes.",
+                        PokemonPackage.Literals.ROUTE__EVENTS
+                    );
+                }
+            }
+
+            if (event instanceof RandomItem) {
+                if (route.getType() == RouteType.CAVE) {
+                    warning(
+                        "Random items in cave routes should be used carefully, since caves are dangerous areas.",
+                        PokemonPackage.Literals.ROUTE__EVENTS
+                    );
+                }
+            }
+        }
+    }
+	
 	
 }

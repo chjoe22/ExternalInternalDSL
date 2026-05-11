@@ -66,11 +66,16 @@ Explore:
 
 Route:
     'route' name=ID
+    'type' type=RouteType
     (description=STRING)?
     '{'
         events+=Event*
         ('exits' '(' exits+=[Route] (',' exits+=[Route])* ')')?
     '}'
+;
+
+enum RouteType:
+	town | cave | wilderness | road
 ;
 
 Event:

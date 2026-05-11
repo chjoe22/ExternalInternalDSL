@@ -78,9 +78,11 @@ class PokemonGenerator extends AbstractGenerator {
 
 		val model = resource.contents.head as Model
 
-		if (!model.players.empty || !model.explore.empty){
-			fsa.generateFile("Game.java", model.compileGame)
-			fsa.generateFile("game-summary.txt", model.compileSummary)
+		fsa.generateFile("game-summary.txt", model.compileSummary)
+
+		if (!model.players.empty && !model.explore.empty) {
+		    fsa.generateFile("Game.java", model.compileGame)
+		}
 
 			fsa.generateFile("org/xtext/dsl/runtime/GameEvent.java", compileGameEvent)
 			fsa.generateFile("org/xtext/dsl/runtime/GameRoute.java", compileGameRoute)
@@ -262,23 +264,28 @@ class PokemonGenerator extends AbstractGenerator {
 	}
 
 	def compileWildEncounter(WildEncounter event, String routeVariableName, Model model) '''
-		{
-			List<WildPokemonCandidate> candidates = new ArrayList<>();
 
-			candidates.add(new WildPokemonCandidate(
-			"«event.pokemon.species.name»",
-			«evaluate(event.pokemon.species.hp, event.pokemon.level)»,
-			«evaluate(event.pokemon.species.attack, event.pokemon.level)»
-			));
-			«routeVariableName».addEvent(new WildEncounterEvent(
+	{
+		List<WildPokemonCandidate> candidates = new ArrayList<>();
+		«FOR pokemon : model.allPokemon»
+			«IF pokemon.isWild»
+				candidates.add(new WildPokemonCandidate(
+					"«pokemon.name»",
+					«pokemon.hp»,
+					«pokemon.attack»
+				));
+			«ENDIF»
+		«ENDFOR»
+		«routeVariableName».addEvent(new WildEncounterEvent(
 			"«event.name»",
 			candidates,
 			«event.catchable»,
 			«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
 			«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
-			));
-		}
-	'''
+		));
+	}
+
+'''
 
 	def compileTrainerBattle(TrainerBattle event, String routeVariableName, Model model) '''
 		«IF !event.opponent.team.empty»
