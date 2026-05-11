@@ -142,12 +142,7 @@ class PokemonGenerator extends AbstractGenerator {
 		  Party: «FOR inst : t.team SEPARATOR ", "»«inst.species.name» (lvl «inst.level»)«ENDFOR»
 		«ENDFOR»
 		
-		Pokedex (Species):
-		«FOR p : model.pokemon»
-		- «p.name» | Type: «p.type»
-		«ENDFOR»
-		
-		Pokemon:
+		Pokemon List:
 		«FOR p : model.allPokemon»
 		- «p.name» | type «p.type»
 		«ENDFOR»
