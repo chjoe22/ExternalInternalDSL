@@ -14,7 +14,7 @@ Trainer:
 ;
 
 PokemonDef:
-    (isWild?='wild')?	'pokemon' name=ID '{' 
+    (isWild?='wild')? 'pokemon' name=ID '{' 
     (('hp' hp=Exp) &
     ('attack' attack=Exp) &
     ('defense' defense=Exp) &
