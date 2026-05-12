@@ -3,87 +3,51 @@
  */
 package org.xtext.dsl.validation;
 
-//For wild validation NKB
 import org.eclipse.xtext.validation.Check;
-import org.xtext.dsl.pokemon.Player;
-import org.xtext.dsl.pokemon.Pokemon;
-import org.xtext.dsl.pokemon.PokemonPackage;
-import org.xtext.dsl.pokemon.Trainer;
-
-// For route validation NKB
 import org.xtext.dsl.pokemon.Event;
 import org.xtext.dsl.pokemon.HealingCenter;
+import org.xtext.dsl.pokemon.Player;
+import org.xtext.dsl.pokemon.PokemonInstance;
 import org.xtext.dsl.pokemon.PokemonPackage;
 import org.xtext.dsl.pokemon.RandomItem;
 import org.xtext.dsl.pokemon.Route;
 import org.xtext.dsl.pokemon.RouteType;
+import org.xtext.dsl.pokemon.Trainer;
 import org.xtext.dsl.pokemon.TrainerBattle;
 import org.xtext.dsl.pokemon.WildEncounter;
 
-
 /**
- * This class contains custom validation rules. 
- *
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * This class contains custom validation rules.
  */
 public class PokemonValidator extends AbstractPokemonValidator {
-	
-//	public static final String INVALID_NAME = "invalidName";
-//
-//	@Check
-//	public void checkGreetingStartsWithCapital(Greeting greeting) {
-//		if (!Character.isUpperCase(greeting.getName().charAt(0))) {
-//			warning("Name should start with a capital",
-//					PokemonPackage.Literals.GREETING__NAME,
-//					INVALID_NAME);
-//		}
-//	}
-	
-	
+
 	@Check
+	public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
+	    for (int i = 0; i < player.getTeam().size(); i++) {
+	        PokemonInstance instance = player.getTeam().get(i);
 
-    public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
-
-        for (Pokemon pokemon : player.getTeam()) {
-
-            if (pokemon.isIsWild()) {
-
-                error(
-
-                    "Player parties cannot contain Pokemon declared as wild.",
-
-                    PokemonPackage.Literals.PLAYER__TEAM
-
-                );
-
-            }
-
-        }
-
-    }
+	        if (instance.getSpecies().isIsWild()) {
+	            error(
+	                "Player parties cannot contain Pokemon declared as wild.",
+	                PokemonPackage.Literals.PLAYER__TEAM,
+	                i
+	            );
+	        }
+	    }
+	}
 
     @Check
-
     public void checkTrainerPartyDoesNotContainWildPokemon(Trainer trainer) {
-
-        for (Pokemon pokemon : trainer.getTeam()) {
-
-            if (pokemon.isIsWild()) {
-
+        for (PokemonInstance instance : trainer.getTeam()) {
+            if (instance.getSpecies().isIsWild()) {
                 error(
-
                     "Trainer parties cannot contain Pokemon declared as wild.",
-
                     PokemonPackage.Literals.TRAINER__TEAM
-
                 );
-
             }
-
         }
-
     }
-    
+
     @Check
     public void checkRouteEventTypes(Route route) {
         for (Event event : route.getEvents()) {
@@ -126,6 +90,4 @@ public class PokemonValidator extends AbstractPokemonValidator {
             }
         }
     }
-	
-	
 }
