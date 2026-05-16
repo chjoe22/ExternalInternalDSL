@@ -3,8 +3,22 @@
  */
 package org.xtext.dsl.validation;
 
+// NKB validation part
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+
 import org.eclipse.xtext.validation.Check;
 import org.xtext.dsl.pokemon.Event;
+import org.xtext.dsl.pokemon.Explore;
 import org.xtext.dsl.pokemon.HealingCenter;
 import org.xtext.dsl.pokemon.Player;
 import org.xtext.dsl.pokemon.PokemonInstance;
@@ -16,6 +30,7 @@ import org.xtext.dsl.pokemon.Trainer;
 import org.xtext.dsl.pokemon.TrainerBattle;
 import org.xtext.dsl.pokemon.WildEncounter;
 
+
 /**
  * This class contains custom validation rules.
  */
@@ -25,7 +40,6 @@ public class PokemonValidator extends AbstractPokemonValidator {
 	public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
 	    for (int i = 0; i < player.getTeam().size(); i++) {
 	        PokemonInstance instance = player.getTeam().get(i);
-
 	        if (instance.getSpecies().isIsWild()) {
 	            error(
 	                "Player parties cannot contain Pokemon declared as wild.",
@@ -38,11 +52,13 @@ public class PokemonValidator extends AbstractPokemonValidator {
 
     @Check
     public void checkTrainerPartyDoesNotContainWildPokemon(Trainer trainer) {
-        for (PokemonInstance instance : trainer.getTeam()) {
+    	for (int i = 0; i < trainer.getTeam().size(); i++) {
+            PokemonInstance instance = trainer.getTeam().get(i);
             if (instance.getSpecies().isIsWild()) {
-                error(
-                    "Trainer parties cannot contain Pokemon declared as wild.",
-                    PokemonPackage.Literals.TRAINER__TEAM
+                error("Trainer parties cannot contain Pokemon declared as wild.",
+                    PokemonPackage.Literals.TRAINER__TEAM,
+                    i
+
                 );
             }
         }
@@ -71,15 +87,6 @@ public class PokemonValidator extends AbstractPokemonValidator {
                 }
             }
 
-            if (event instanceof TrainerBattle) {
-                if (route.getType() == RouteType.CAVE) {
-                    error(
-                        "Trainer battles are not allowed in cave routes.",
-                        PokemonPackage.Literals.ROUTE__EVENTS
-                    );
-                }
-            }
-
             if (event instanceof RandomItem) {
                 if (route.getType() == RouteType.CAVE) {
                     warning(
@@ -90,4 +97,457 @@ public class PokemonValidator extends AbstractPokemonValidator {
             }
         }
     }
+    
+    
+    
+    
+    // Game flow validation NKB
+    // The route model is treated as a directed graph:
+    // Route exits are graph edges
+    // win goto / lose goto are graph edges
+    // then goto transitions are graph edges
+    // Core goal is to check if the modeled game is structurally playable
+    
+    @Check
+    public void checkGameFlow(Explore explore) {
+
+        if (explore.getRoutes().isEmpty()) {
+
+            return;
+
+        }
+
+        Route startRoute = explore.getRoutes().get(0);
+
+        Map<Route, Set<Route>> graph = buildRouteGraph(explore);
+
+        Set<Route> reachableRoutes = findReachableRoutes(startRoute, graph);
+
+        checkUnreachableRoutes(explore, reachableRoutes);
+
+        checkDeadEndRoutes(explore, graph, reachableRoutes);
+
+        checkPossibleRouteSoftlocks(explore, graph, reachableRoutes);
+
+    }
+
+    
+
+     // Detect routes that cannot be reached from the first route.
+    private void checkUnreachableRoutes(Explore explore, Set<Route> reachableRoutes) {
+
+        for (int i = 0; i < explore.getRoutes().size(); i++) {
+
+            Route route = explore.getRoutes().get(i);
+
+            if (!reachableRoutes.contains(route)) {
+
+                error(
+
+                    "Route '" + route.getName() + "' is unreachable from the starting route.",
+
+                    PokemonPackage.Literals.EXPLORE__ROUTES,
+
+                    i
+
+                );
+
+            }
+
+        }
+
+    }
+
+    
+
+     
+
+     // Detect routes the player can enter, but cannot leave.
+    // This is a warning because some routes may intentionally end the game.
+    private void checkDeadEndRoutes(
+
+            Explore explore,
+
+            Map<Route, Set<Route>> graph,
+
+            Set<Route> reachableRoutes
+
+    ) {
+
+        for (int i = 0; i < explore.getRoutes().size(); i++) {
+
+            Route route = explore.getRoutes().get(i);
+
+            if (!reachableRoutes.contains(route)) {
+
+                continue;
+
+            }
+
+            Set<Route> outgoing = graph.get(route);
+
+            if (outgoing == null || outgoing.isEmpty()) {
+
+                warning(
+
+                    "Route '" + route.getName() + "' is reachable, but has no exits or event transitions. The game will end here.",
+
+                    PokemonPackage.Literals.EXPLORE__ROUTES,
+
+                    i
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+     
+
+   
+    	// check if battles has complete outcomes
+    @Check
+
+    public void checkTrainerBattleHasCompleteOutcomes(TrainerBattle battle) {
+
+        if (battle.getWinNext() == null) {
+
+            warning(
+
+                "Trainer battle '" + battle.getName() + "' has no win transition.",
+
+                PokemonPackage.Literals.TRAINER_BATTLE__WIN_NEXT
+
+            );
+
+        }
+
+        if (battle.getLoseNext() == null) {
+
+            warning(
+
+                "Trainer battle '" + battle.getName() + "' has no lose transition. Losing is possible in the generated game.",
+
+                PokemonPackage.Literals.TRAINER_BATTLE__LOSE_NEXT
+
+            );
+
+        }
+
+        if (battle.getWinNext() != null
+
+                && battle.getLoseNext() != null
+
+                && battle.getWinNext() == battle.getLoseNext()) {
+
+            warning(
+
+                "Trainer battle '" + battle.getName()
+
+                    + "' sends both win and lose to the same route. The outcome has no structural effect.",
+
+                PokemonPackage.Literals.TRAINER_BATTLE__LOSE_NEXT
+
+            );
+
+        }
+
+    }
+
+ 
+    // Wild should have complete outcomes
+    @Check
+
+    public void checkWildEncounterHasCompleteOutcomes(WildEncounter encounter) {
+
+        if (encounter.getWinNext() == null) {
+
+            warning(
+
+                "Wild encounter '" + encounter.getName() + "' has no win transition.",
+
+                PokemonPackage.Literals.WILD_ENCOUNTER__WIN_NEXT
+
+            );
+
+        }
+
+        if (encounter.getLoseNext() == null) {
+
+            warning(
+
+                "Wild encounter '" + encounter.getName() + "' has no lose transition. Fleeing or losing is possible in the generated game.",
+
+                PokemonPackage.Literals.WILD_ENCOUNTER__LOSE_NEXT
+
+            );
+
+        }
+
+        if (encounter.getWinNext() != null
+
+                && encounter.getLoseNext() != null
+
+                && encounter.getWinNext() == encounter.getLoseNext()) {
+
+            warning(
+
+                "Wild encounter '" + encounter.getName()
+
+                    + "' sends both win and lose to the same route. The outcome has no structural effect.",
+
+                PokemonPackage.Literals.WILD_ENCOUNTER__LOSE_NEXT
+
+            );
+
+        }
+
+    }
+
+
+    // Build direct route graphs 
+    private Map<Route, Set<Route>> buildRouteGraph(Explore explore) {
+
+        Map<Route, Set<Route>> graph = new HashMap<>();
+
+        for (Route route : explore.getRoutes()) {
+
+            graph.put(route, collectOutgoingRoutes(route));
+
+        }
+
+        return graph;
+
+    }
+    
+
+    // Collect all outgoing transitions from a route.
+    // This includes explicit exits, win/lose routes, and then goto routes.
+    private Set<Route> collectOutgoingRoutes(Route route) {
+
+        Set<Route> outgoing = new HashSet<>();
+
+        outgoing.addAll(route.getExits());
+
+        for (Event event : route.getEvents()) {
+
+            if (event instanceof WildEncounter) {
+
+                WildEncounter encounter = (WildEncounter) event;
+
+                if (encounter.getWinNext() != null) {
+
+                    outgoing.add(encounter.getWinNext());
+
+                }
+
+                if (encounter.getLoseNext() != null) {
+
+                    outgoing.add(encounter.getLoseNext());
+
+                }
+
+            }
+
+            if (event instanceof TrainerBattle) {
+
+                TrainerBattle battle = (TrainerBattle) event;
+
+                if (battle.getWinNext() != null) {
+
+                    outgoing.add(battle.getWinNext());
+
+                }
+
+                if (battle.getLoseNext() != null) {
+
+                    outgoing.add(battle.getLoseNext());
+
+                }
+
+            }
+
+            if (event instanceof RandomItem) {
+
+                RandomItem item = (RandomItem) event;
+
+                if (item.getNext() != null) {
+
+                    outgoing.add(item.getNext());
+
+                }
+
+            }
+
+            if (event instanceof HealingCenter) {
+
+                HealingCenter healing = (HealingCenter) event;
+
+                if (healing.getNext() != null) {
+
+                    outgoing.add(healing.getNext());
+
+                }
+
+            }
+
+        }
+
+        return outgoing;
+
+    }
+
+
+    // Breadth-first search from the starting route. 
+    private Set<Route> findReachableRoutes(Route startRoute, Map<Route, Set<Route>> graph) {
+
+        Set<Route> visited = new HashSet<>();
+
+        Queue<Route> queue = new ArrayDeque<>();
+
+        visited.add(startRoute);
+
+        queue.add(startRoute);
+
+        while (!queue.isEmpty()) {
+
+            Route current = queue.remove();
+
+            Set<Route> outgoing = graph.get(current);
+
+            if (outgoing == null) {
+
+                continue;
+
+            }
+
+            for (Route next : outgoing) {
+
+                if (!visited.contains(next)) {
+
+                    visited.add(next);
+
+                    queue.add(next);
+
+                }
+
+            }
+
+        }
+
+        return visited;
+
+    }
+
+    private boolean containsHealing(Route route) {
+
+        for (Event event : route.getEvents()) {
+
+            if (event instanceof HealingCenter) {
+
+                return true;
+
+            }
+
+        }
+
+        return false;
+
+    }
+    
+    // Softlock validation idea
+    private void checkPossibleRouteSoftlocks(
+            Explore explore,
+            Map<Route, Set<Route>> graph,
+            Set<Route> reachableRoutes
+    ) {
+        List<List<Route>> sccs = new ArrayList<>();
+        Map<Route, Integer> index = new HashMap<>();
+        Map<Route, Integer> lowlink = new HashMap<>();
+        Map<Route, Boolean> onStack = new HashMap<>();
+        Deque<Route> stack = new ArrayDeque<>();
+        int[] counter = {0};
+
+        for (Route route : explore.getRoutes()) {
+            if (!index.containsKey(route)) {
+                tarjanDFS(route, graph, index, lowlink, onStack, stack, counter, sccs);
+            }
+        }
+
+        for (List<Route> scc : sccs) {
+            if (scc.size() == 1) {
+                Route r = scc.get(0);
+                Set<Route> out = graph.getOrDefault(r, Set.of());
+                if (!out.contains(r)) continue;
+            }
+
+            Set<Route> sccSet = new HashSet<>(scc);
+            boolean hasEscape = scc.stream()
+                .flatMap(r -> graph.getOrDefault(r, Set.of()).stream())
+                .anyMatch(r -> !sccSet.contains(r));
+
+            if (!hasEscape) {
+                String routeNames = scc.stream()
+                    .map(Route::getName)
+                    .collect(Collectors.joining("', '", "'", "'"));
+
+                for (Route routeInLoop : scc) {
+                    int idx = explore.getRoutes().indexOf(routeInLoop);
+
+                    warning(
+                        "Possible softlock: routes " + routeNames
+                            + " form a loop with no escape.",
+                        PokemonPackage.Literals.EXPLORE__ROUTES,
+                        idx
+                    );
+                }
+            }
+        }
+    }
+
+    private void tarjanDFS(
+            Route route,
+            Map<Route, Set<Route>> graph,
+            Map<Route, Integer> index,
+            Map<Route, Integer> lowlink,
+            Map<Route, Boolean> onStack,
+            Deque<Route> stack,
+            int[] counter,
+            List<List<Route>> sccs
+    ) {
+        index.put(route, counter[0]);
+        lowlink.put(route, counter[0]);
+        counter[0]++;
+        stack.push(route);
+        onStack.put(route, true);
+
+        Set<Route> outgoing = graph.getOrDefault(route, Set.of());
+        for (Route neighbour : outgoing) {
+            if (!index.containsKey(neighbour)) {
+                tarjanDFS(neighbour, graph, index, lowlink, onStack, stack, counter, sccs);
+                lowlink.put(route, Math.min(lowlink.get(route), lowlink.get(neighbour)));
+            } else if (Boolean.TRUE.equals(onStack.get(neighbour))) {
+                lowlink.put(route, Math.min(lowlink.get(route), index.get(neighbour)));
+            }
+        }
+
+        if (lowlink.get(route).equals(index.get(route))) {
+            List<Route> scc = new ArrayList<>();
+            Route w;
+            do {
+                w = stack.pop();
+                onStack.put(w, false);
+                scc.add(w);
+            } while (w != route);
+            sccs.add(scc);
+        }
+    }
+
 }
+    
+    
