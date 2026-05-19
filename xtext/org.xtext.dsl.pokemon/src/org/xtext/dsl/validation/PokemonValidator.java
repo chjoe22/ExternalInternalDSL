@@ -3,10 +3,13 @@
  */
 package org.xtext.dsl.validation;
 
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
 import org.xtext.dsl.pokemon.Event;
+import org.xtext.dsl.pokemon.Exp;
 import org.xtext.dsl.pokemon.HealingCenter;
 import org.xtext.dsl.pokemon.Player;
+import org.xtext.dsl.pokemon.PokemonDef;
 import org.xtext.dsl.pokemon.PokemonInstance;
 import org.xtext.dsl.pokemon.PokemonPackage;
 import org.xtext.dsl.pokemon.RandomItem;
@@ -16,11 +19,58 @@ import org.xtext.dsl.pokemon.Trainer;
 import org.xtext.dsl.pokemon.TrainerBattle;
 import org.xtext.dsl.pokemon.WildEncounter;
 
+import com.google.inject.Inject;
+
 /**
  * This class contains custom validation rules.
  */
 public class PokemonValidator extends AbstractPokemonValidator {
 
+	@Inject
+	private PokemonTypeCompute typeCompute;
+	
+	@Check
+	public void checkExp(Exp exp) {
+		PokemonType type = typeCompute.typeOf(exp);
+		if (PokemonType.VOID.equals(type)) {
+			error("Type mismatch or invalid context", exp, null);
+		}
+	}
+	
+	@Check
+	public void checkPlayerMoney(Player player) {
+	    PokemonType type = typeCompute.typeOf(player.getMoney());
+
+	    if (!PokemonType.MONEY_INT.equals(type)) {
+	        error("Money must be an integer expression.",
+	              PokemonPackage.Literals.PLAYER__MONEY);
+	    }
+	}
+	
+	@Check
+	public void checkPokemonStats(PokemonDef pokemon) {
+	    checkStat(pokemon.getHp(), PokemonPackage.Literals.POKEMON_DEF__HP, "hp");
+	    checkStat(pokemon.getAttack(), PokemonPackage.Literals.POKEMON_DEF__ATTACK, "attack");
+	    checkStat(pokemon.getDefense(), PokemonPackage.Literals.POKEMON_DEF__DEFENSE, "defense");
+	    checkStat(pokemon.getSpatk(), PokemonPackage.Literals.POKEMON_DEF__SPATK, "sp.atk");
+	    checkStat(pokemon.getSpdef(), PokemonPackage.Literals.POKEMON_DEF__SPDEF, "sp.def");
+	    checkStat(pokemon.getSpeed(), PokemonPackage.Literals.POKEMON_DEF__SPEED, "speed");
+	}
+
+	private void checkStat(Exp exp, EStructuralFeature feature, String name) {
+	    PokemonType type = typeCompute.typeOf(exp);
+
+	    boolean validStat =
+	        PokemonType.STAT_INT.equals(type) ||
+	        PokemonType.STAT_FLOAT.equals(type);
+
+	    if (!validStat) {
+	        error(name + " must be a valid stat expression.",
+	              feature);
+	    }
+	}
+	
+	
 	@Check
 	public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
 	    for (int i = 0; i < player.getTeam().size(); i++) {

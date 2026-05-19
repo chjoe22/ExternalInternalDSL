@@ -8,7 +8,7 @@ Model:
     
 Player:
     'player' name=ID '{' 
-        'money' money=INT 
+        'money' money=Exp 
         'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' 
     '}'
 ; 
@@ -27,7 +27,7 @@ PokemonDef:
         ('sp.atk' spatk=Exp) &
         ('sp.def' spdef=Exp) &
         ('speed' speed=Exp)) 
-        'type' type=STRING
+        'type' type=ElementalType
         'move' '(' moves+=[Move] (',' moves+=[Move])* ')'
     '}'
 ;
@@ -49,23 +49,31 @@ Multiplication returns Exp:
 ;
 
 Primary returns Exp:
-    NumVal | LvlRef | '(' Exp ')'
+    NumVal | FloatVal | LvlRef | '(' Exp ')'
 ;
 
 NumVal returns Exp:
     {NumVal} value=INT
 ;
 
+FloatVal returns Exp:
+	{FloatVal} value=DECIMAL
+;
+
 LvlRef returns Exp:
     {LvlRef} 'lvl'
 ;
 
+terminal DECIMAL:
+	INT '.' INT
+;
+
 Action:
-    'action' name=('attack' | 'catch' | 'flee') ('->' 'outcome' ':' description=STRING)?
+    'action' name=ActionType ('->' 'outcome' ':' description=STRING)?
 ;
 
 Move:
-    'move' name=ID 'type' type=STRING 'power' power=INT 'accuracy' acc=INT 'pp' pp=INT
+    'move' name=ID 'type' type=ElementalType 'power' power=INT 'accuracy' acc=INT 'pp' pp=INT
 ;
 
 Explore:
@@ -84,6 +92,14 @@ Route:
 
 enum RouteType:
     town | cave | wilderness | road
+;
+
+enum ElementalType:
+	FIRE | WATER | ELECTRIC | POISON | NORMAL | FIGHTING
+;
+
+enum ActionType:
+	ATTACK | CATCH | FLEE
 ;
 
 Event:
