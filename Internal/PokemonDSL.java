@@ -23,12 +23,6 @@ public class PokemonDSL {
         return model;
     }
 
-    // --------------------
-    // Move
-    // Grammar:
-    // move name type type power power accuracy acc pp pp
-    // --------------------
-
     public PokemonDSL move(String name) {
         Move move = new Move();
         move.name = name;
@@ -71,12 +65,6 @@ public class PokemonDSL {
         currentMove.pp = pp;
         return this;
     }
-
-    // --------------------
-    // PokemonDef
-    // Grammar:
-    // pokemon name { hp attack defense sp.atk sp.def speed type move(...) }
-    // --------------------
 
     public PokemonDSL pokemon(String name) {
         PokemonDef pokemon = new PokemonDef();
@@ -143,12 +131,6 @@ public class PokemonDSL {
         return this;
     }
 
-    // --------------------
-    // Player
-    // Grammar:
-    // player name { money INT party(...) }
-    // --------------------
-
     public PokemonDSL player(String name) {
         Player player = new Player();
         player.name = name;
@@ -166,12 +148,6 @@ public class PokemonDSL {
         return this;
     }
 
-    // --------------------
-    // Trainer
-    // Grammar:
-    // trainer name { party(...) }
-    // --------------------
-
     public PokemonDSL trainer(String name) {
         Trainer trainer = new Trainer();
         trainer.name = name;
@@ -182,12 +158,6 @@ public class PokemonDSL {
 
         return this;
     }
-
-    // --------------------
-    // PokemonInstance
-    // Grammar:
-    // species=[PokemonDef] 'lvl' level=INT
-    // --------------------
 
     public PokemonDSL party(String species, int level) {
         PokemonInstance instance = new PokemonInstance(species, level);
@@ -202,13 +172,6 @@ public class PokemonDSL {
 
         return this;
     }
-
-    // --------------------
-    // Explore and Route
-    // Grammar:
-    // explore { routes+=Route+ }
-    // route name type type description? { events* exits? }
-    // --------------------
 
     public PokemonDSL explore() {
         model.explore = new Explore();
@@ -250,12 +213,6 @@ public class PokemonDSL {
         currentRoute.exits.addAll(Arrays.asList(routeNames));
         return this;
     }
-
-    // --------------------
-    // Events
-    // Grammar:
-    // WildEncounter | TrainerBattle | RandomItem | HealingCenter
-    // --------------------
 
     public PokemonDSL encounter(String name) {
         requireRoute();
@@ -366,10 +323,6 @@ public class PokemonDSL {
 
         return this;
     }
-
-    // --------------------
-    // Helper methods
-    // --------------------
 
     private void clearCurrent() {
         currentPlayer = null;
