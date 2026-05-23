@@ -7,65 +7,57 @@ Model:
 ;
     
 Player:
-    'player' name=ID '{' 
-        'money' money=INT 
-        'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' 
-    '}'
-; 
+    'player' name=ID '{' 'money' money=INT 'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' '}'; 
 
 Trainer:
-    'trainer' name=ID '{' 
-        'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' 
-    '}'
+	'trainer' name=ID '{' 'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' '}'
 ;
 
 PokemonDef:
     (isWild?='wild')? 'pokemon' name=ID '{' 
-        (('hp' hp=Exp) &
-        ('attack' attack=Exp) &
-        ('defense' defense=Exp) &
-        ('sp.atk' spatk=Exp) &
-        ('sp.def' spdef=Exp) &
-        ('speed' speed=Exp)) 
-        'type' type=STRING
-        'move' '(' moves+=[Move] (',' moves+=[Move])* ')'
+    (('hp' hp=Exp) &
+    ('attack' attack=Exp) &
+    ('defense' defense=Exp) &
+    ('sp.atk' spatk=Exp) &
+    ('sp.def' spdef=Exp) &
+    ('speed' speed=Exp)) 
+    'type' type=STRING
+    'move' '(' moves+=[Move] (',' moves+=[Move])* ')'
     '}'
-;
+    ;
 
 PokemonInstance:
-    species=[PokemonDef] 'lvl' level=INT
+	species=[PokemonDef] 'lvl' level=INT
 ;
 
 Exp:
-    Addition
+	Addition
 ;
 
 Addition returns Exp:
-    Multiplication ({Addition.left=current} op=('+'|'-') right=Multiplication)*
+	Multiplication ({Addition.left=current} op=('+'|'-') right=Multiplication)*
 ;
 
 Multiplication returns Exp:
-    Primary ({Multiplication.left=current} op=('*'|'/') right=Primary)*
+	Primary ({Multiplication.left=current} op=('*'|'/') right=Primary)*
 ;
 
 Primary returns Exp:
-    NumVal | LvlRef | '(' Exp ')'
+	NumVal | LvlRef | '(' Exp ')'
 ;
-
 NumVal returns Exp:
-    {NumVal} value=INT
+	{NumVal} value=INT
 ;
-
 LvlRef returns Exp:
-    {LvlRef} 'lvl'
+	{LvlRef} 'lvl'
 ;
 
 Action:
-    'action' name=('attack' | 'catch' | 'flee') ('->' 'outcome' ':' description=STRING)?
+    'action' name=('attack'| 'catch' |'flee') ('->' 'outcome' ':' description=STRING)?
 ;
 
 Move:
-    'move' name=ID 'type' type=STRING 'power' power=INT 'accuracy' acc=INT 'pp' pp=INT
+	'move' name=ID 'type' type=STRING 'power' power=INT 'accuracy' acc=INT 'pp' pp=INT
 ;
 
 Explore:
@@ -83,7 +75,7 @@ Route:
 ;
 
 enum RouteType:
-    town | cave | wilderness | road
+	town | cave | wilderness | road
 ;
 
 Event:
@@ -91,7 +83,7 @@ Event:
 ;
 
 WildEncounter:
-    {WildEncounter} 'encounter' name=ID 'wild' 'pokemon' (catchable?='catchable')? '{'
+    {WildEncounter} 'encounter' name=ID 'wild' 'pokemon' pokemon=PokemonInstance (catchable?='catchable')? '{'
         (actions+=Action)*
         ('win'  'goto' winNext=[Route])?
         ('lose' 'goto' loseNext=[Route])?
