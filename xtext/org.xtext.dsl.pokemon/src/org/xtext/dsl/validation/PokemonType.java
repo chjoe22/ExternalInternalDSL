@@ -7,6 +7,8 @@ public class PokemonType {
     public static final String DOMAIN_STAT = "Stat";
     public static final String DOMAIN_MONEY = "Money";
     public static final String DOMAIN_LEVEL = "Level";
+    public static final String DOMAIN_COUNT = "Count";
+    public static final String DOMAIN_BOOLEAN = "Boolean";
     public static final String DOMAIN_VOID = "Void";
 
     // 2. Pre-defined instances for easy comparison
@@ -14,6 +16,8 @@ public class PokemonType {
     public static final PokemonType STAT_FLOAT = new PokemonType(DOMAIN_STAT, true);
     public static final PokemonType MONEY_INT = new PokemonType(DOMAIN_MONEY, false);
     public static final PokemonType LEVEL_INT = new PokemonType(DOMAIN_LEVEL, false);
+    public static final PokemonType COUNT_INT = new PokemonType(DOMAIN_COUNT, false);
+    public static final PokemonType BOOLEAN = new PokemonType(DOMAIN_BOOLEAN, false);
     public static final PokemonType VOID = new PokemonType(DOMAIN_VOID, false);
 
     private final String domain;
@@ -38,6 +42,14 @@ public class PokemonType {
 
     @Override
     public String toString() {
+        if (domain.equals(DOMAIN_VOID)) {
+            return DOMAIN_VOID;
+        }
+
+        if (domain.equals(DOMAIN_BOOLEAN)) {
+            return DOMAIN_BOOLEAN;
+        }
+
         return domain + (isFloat ? " (Decimal)" : " (Integer)");
     }
 }

@@ -8,13 +8,16 @@ Model:
     
 Player:
     'player' name=ID '{' 
-        'money' money=Exp 
+        'money' money=Exp
+        'badges' badges=INT 
         'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' 
     '}'
 ; 
 
 Trainer:
     'trainer' name=ID '{' 
+    	('difficulty' difficulty=TrainerType)?
+    	('requires' req=Exp)?
         'party' '(' team+=PokemonInstance (',' team+=PokemonInstance)* ')' 
     '}'
 ;
@@ -37,7 +40,23 @@ PokemonInstance:
 ;
 
 Exp:
-    Addition
+    Or
+;
+
+Or returns Exp:
+	And ({Or.left=current} op='||' right=And)*
+;
+
+And returns Exp:
+	Equal ({And.left=current} op='&&' right=Equal)*
+;
+
+Equal returns Exp:
+	Comparison ({Equal.left=current} op=('=='|'!=') right=Comparison)?
+;
+
+Comparison returns Exp:
+	Addition ({Comparison.left=current} op=('>='|'<='|'<'|'>') right=Addition)?
 ;
 
 Addition returns Exp:
@@ -49,7 +68,11 @@ Multiplication returns Exp:
 ;
 
 Primary returns Exp:
-    NumVal | FloatVal | LvlRef | '(' Exp ')'
+    BoolVal | NumVal | FloatVal | LvlRef | BadgeRef | '(' Exp ')'
+;
+
+BoolVal returns Exp:
+	{BoolVal} value=('true'|'false')
 ;
 
 NumVal returns Exp:
@@ -62,6 +85,10 @@ FloatVal returns Exp:
 
 LvlRef returns Exp:
     {LvlRef} 'lvl'
+;
+
+BadgeRef returns Exp:
+	{BadgeRef} 'badges'
 ;
 
 terminal DECIMAL:
@@ -102,12 +129,16 @@ enum ActionType:
 	ATTACK | CATCH | FLEE
 ;
 
+enum TrainerType:
+	Normal | Rival | GymLeader | EliteFour | Champion
+;
+
 Event:
     WildEncounter | TrainerBattle | RandomItem | HealingCenter
 ;
 
 WildEncounter:
-    {WildEncounter} 'encounter' name=ID 'wild' 'pokemon' (catchable?='catchable')? '{'
+    {WildEncounter} 'encounter' name=ID 'wild' 'pokemon' pokemon=PokemonInstance (catchable?='catchable')? '{'
         (actions+=Action)*
         ('win'  'goto' winNext=[Route])?
         ('lose' 'goto' loseNext=[Route])?
@@ -118,7 +149,12 @@ TrainerBattle:
     {TrainerBattle} 'battle' name=ID 'vs' opponent=[Trainer] '{'
         ('win'  'goto' winNext=[Route])?
         ('lose' 'goto' loseNext=[Route])?
+        ('reward' reward=BattleReward)?
     '}'
+;
+
+BattleReward:
+	'badges' badges=INT
 ;
 
 RandomItem:

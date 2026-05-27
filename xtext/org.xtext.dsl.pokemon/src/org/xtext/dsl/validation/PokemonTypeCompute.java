@@ -10,16 +10,32 @@ public class PokemonTypeCompute {
      * This handles the recursive "Complex Expression" requirement.
      */
     public PokemonType typeOf(Exp e) {
+    	if (e == null) {
+    		return PokemonType.VOID;
+    	}
+    	
         if (e instanceof NumVal) {
             return getNumericContextType(e, false);
         } else if (e instanceof FloatVal) {
             return getNumericContextType(e, true);
+        } else if (e instanceof BoolVal) {
+        	return PokemonType.BOOLEAN;
         } else if (e instanceof LvlRef) {
             return PokemonType.LEVEL_INT;
+        } else if (e instanceof BadgeRef) {
+        	return PokemonType.COUNT_INT;
         } else if (e instanceof Addition) {
             return computeArithmeticType(((Addition) e).getLeft(), ((Addition) e).getRight());
         } else if (e instanceof Multiplication) {
             return computeArithmeticType(((Multiplication) e).getLeft(), ((Multiplication) e).getRight());
+        } else if (e instanceof Comparison) {
+        	return computeComparison((Comparison) e);
+        } else if (e instanceof Equal) {
+        	return computeEqual((Equal) e);
+        } else if (e instanceof And) {
+        	return computeBooleanType(((And) e).getLeft(), ((And) e).getRight());
+        } else if (e instanceof Or) {
+        	return computeBooleanType(((Or) e).getLeft(), ((Or) e).getRight());
         }
         return PokemonType.VOID;
     }
@@ -34,6 +50,9 @@ public class PokemonTypeCompute {
         }
         if (EcoreUtil2.getContainerOfType(e, PokemonDef.class) != null) {
             return isFloat ? PokemonType.STAT_FLOAT : PokemonType.STAT_INT;
+        }
+        if (EcoreUtil2.getContainerOfType(e, Trainer.class) != null) {
+        	return isFloat ? PokemonType.VOID : PokemonType.LEVEL_INT;
         }
         return PokemonType.VOID;
     }
@@ -74,5 +93,54 @@ public class PokemonTypeCompute {
             return PokemonType.VOID;
         }
         return type;
+    }
+    
+    private PokemonType computeComparison(Comparison compare) {
+    	if (compare.getRight() == null) {
+    		return typeOf(compare.getLeft());
+    	}
+    	
+    	PokemonType leftType = typeOf(compare.getLeft());
+    	PokemonType rightType = typeOf(compare.getRight());
+    	
+    	if (isNumeric(leftType) && isNumeric(rightType)) {
+    		return PokemonType.BOOLEAN;
+    	}
+    	return PokemonType.VOID;
+    }
+    
+    private PokemonType computeEqual(Equal equal) {
+    	if (equal.getRight() == null) {
+    		return typeOf(equal.getLeft());
+    	}
+    	
+    	PokemonType leftType = typeOf(equal.getLeft());
+    	PokemonType rightType = typeOf(equal.getRight());
+    	
+    	if (leftType.equals(rightType)) {
+    		return PokemonType.BOOLEAN;
+    	}
+    	return PokemonType.VOID;
+    }
+    
+    private PokemonType computeBooleanType(Exp left, Exp right) {
+    	if (right == null) {
+    		return typeOf(left);
+    	}
+    	
+    	PokemonType leftType = typeOf(left);
+    	PokemonType rightType = typeOf(right);
+    	
+    	if (PokemonType.BOOLEAN.equals(leftType) && PokemonType.BOOLEAN.equals(rightType)) {
+    		return PokemonType.BOOLEAN;
+    	}
+    	return PokemonType.VOID;
+    }
+    
+    private boolean isNumeric(PokemonType type) {
+    	return type.getDomain().equals(PokemonType.DOMAIN_STAT) 
+    			|| type.getDomain().equals(PokemonType.DOMAIN_LEVEL) 
+    			|| type.getDomain().equals(PokemonType.DOMAIN_MONEY)
+    			|| type.getDomain().equals(PokemonType.DOMAIN_COUNT);
     }
 }

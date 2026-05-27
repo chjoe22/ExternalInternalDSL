@@ -5,19 +5,11 @@ package org.xtext.dsl.validation;
 
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
-import org.xtext.dsl.pokemon.Event;
 import org.xtext.dsl.pokemon.Exp;
-import org.xtext.dsl.pokemon.HealingCenter;
 import org.xtext.dsl.pokemon.Player;
 import org.xtext.dsl.pokemon.PokemonDef;
-import org.xtext.dsl.pokemon.PokemonInstance;
 import org.xtext.dsl.pokemon.PokemonPackage;
-import org.xtext.dsl.pokemon.RandomItem;
-import org.xtext.dsl.pokemon.Route;
-import org.xtext.dsl.pokemon.RouteType;
 import org.xtext.dsl.pokemon.Trainer;
-import org.xtext.dsl.pokemon.TrainerBattle;
-import org.xtext.dsl.pokemon.WildEncounter;
 
 import com.google.inject.Inject;
 
@@ -30,20 +22,30 @@ public class PokemonValidator extends AbstractPokemonValidator {
 	private PokemonTypeCompute typeCompute;
 	
 	@Check
+	public void checkTrainerReq(Trainer trainer) {
+		if (trainer.getReq() == null) {
+			return;
+		}
+		PokemonType type = typeCompute.typeOf(trainer.getReq());
+		if (!PokemonType.BOOLEAN.equals(type)) {
+			error("Trainer requirement must be a 'boolean' expression", PokemonPackage.Literals.TRAINER__REQ);
+		}
+	}
+	
+/**	@Check
 	public void checkExp(Exp exp) {
 		PokemonType type = typeCompute.typeOf(exp);
 		if (PokemonType.VOID.equals(type)) {
 			error("Type mismatch or invalid context", exp, null);
 		}
-	}
+	}*/
 	
 	@Check
 	public void checkPlayerMoney(Player player) {
 	    PokemonType type = typeCompute.typeOf(player.getMoney());
 
 	    if (!PokemonType.MONEY_INT.equals(type)) {
-	        error("Money must be an integer expression.",
-	              PokemonPackage.Literals.PLAYER__MONEY);
+	        error("Money must be an integer expression.", PokemonPackage.Literals.PLAYER__MONEY);
 	    }
 	}
 	
@@ -65,79 +67,7 @@ public class PokemonValidator extends AbstractPokemonValidator {
 	        PokemonType.STAT_FLOAT.equals(type);
 
 	    if (!validStat) {
-	        error(name + " must be a valid stat expression.",
-	              feature);
+	        error(name + " must be a valid stat expression.", feature);
 	    }
 	}
-	
-	
-	@Check
-	public void checkPlayerPartyDoesNotContainWildPokemon(Player player) {
-	    for (int i = 0; i < player.getTeam().size(); i++) {
-	        PokemonInstance instance = player.getTeam().get(i);
-
-	        if (instance.getSpecies().isIsWild()) {
-	            error(
-	                "Player parties cannot contain Pokemon declared as wild.",
-	                PokemonPackage.Literals.PLAYER__TEAM,
-	                i
-	            );
-	        }
-	    }
-	}
-
-    @Check
-    public void checkTrainerPartyDoesNotContainWildPokemon(Trainer trainer) {
-        for (PokemonInstance instance : trainer.getTeam()) {
-            if (instance.getSpecies().isIsWild()) {
-                error(
-                    "Trainer parties cannot contain Pokemon declared as wild.",
-                    PokemonPackage.Literals.TRAINER__TEAM
-                );
-            }
-        }
-    }
-
-    @Check
-    public void checkRouteEventTypes(Route route) {
-        for (Event event : route.getEvents()) {
-
-            if (event instanceof WildEncounter) {
-                if (route.getType() != RouteType.WILDERNESS
-                        && route.getType() != RouteType.CAVE) {
-                    error(
-                        "Wild encounters are only allowed in wilderness or cave routes.",
-                        PokemonPackage.Literals.ROUTE__EVENTS
-                    );
-                }
-            }
-
-            if (event instanceof HealingCenter) {
-                if (route.getType() != RouteType.TOWN) {
-                    error(
-                        "Healing events are only allowed in town routes.",
-                        PokemonPackage.Literals.ROUTE__EVENTS
-                    );
-                }
-            }
-
-            if (event instanceof TrainerBattle) {
-                if (route.getType() == RouteType.CAVE) {
-                    error(
-                        "Trainer battles are not allowed in cave routes.",
-                        PokemonPackage.Literals.ROUTE__EVENTS
-                    );
-                }
-            }
-
-            if (event instanceof RandomItem) {
-                if (route.getType() == RouteType.CAVE) {
-                    warning(
-                        "Random items in cave routes should be used carefully, since caves are dangerous areas.",
-                        PokemonPackage.Literals.ROUTE__EVENTS
-                    );
-                }
-            }
-        }
-    }
 }

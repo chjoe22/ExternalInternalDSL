@@ -8,6 +8,7 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.xtext.dsl.pokemon.Addition
+import org.xtext.dsl.pokemon.FloatVal
 import org.xtext.dsl.pokemon.Event
 import org.xtext.dsl.pokemon.Exp
 import org.xtext.dsl.pokemon.HealingCenter
@@ -21,17 +22,36 @@ import org.xtext.dsl.pokemon.RandomItem
 import org.xtext.dsl.pokemon.Trainer
 import org.xtext.dsl.pokemon.TrainerBattle
 import org.xtext.dsl.pokemon.WildEncounter
+import org.xtext.dsl.pokemon.BoolVal
+import org.xtext.dsl.pokemon.BadgeRef
+import org.xtext.dsl.pokemon.Comparison
+import org.xtext.dsl.pokemon.Equal
+import org.xtext.dsl.pokemon.And
+import org.xtext.dsl.pokemon.Or
+import org.xtext.dsl.pokemon.Route
 
 /**
  * Generates code from your model files on save.
  */
 class PokemonGenerator extends AbstractGenerator {
-
 	def dispatch CharSequence compileExp(Exp e) '''0'''
 	def dispatch CharSequence compileExp(NumVal e) '''«e.value»'''
+	def dispatch CharSequence compileExp(FloatVal e) '''«e.value»'''
 	def dispatch CharSequence compileExp(LvlRef e) '''this.lvl'''
 	def dispatch CharSequence compileExp(Addition e) '''(«e.left.compileExp» «e.op» «e.right.compileExp»)'''
 	def dispatch CharSequence compileExp(Multiplication e) '''(«e.left.compileExp» «e.op» «e.right.compileExp»)'''
+	
+	def dispatch CharSequence compileRuntimeExp(Exp e) '''false'''
+	def dispatch CharSequence compileRuntimeExp(BoolVal e) '''«e.value»'''
+	def dispatch CharSequence compileRuntimeExp(NumVal e) '''«e.value»'''
+	def dispatch CharSequence compileRuntimeExp(LvlRef e) '''runtime.getHighestLevel()'''
+	def dispatch CharSequence compileRuntimeExp(BadgeRef e) '''runtime.getBadges()'''
+	def dispatch CharSequence compileRuntimeExp(Addition e) '''(«e.left.compileRuntimeExp» «e.op» «e.right.compileRuntimeExp»)'''
+	def dispatch CharSequence compileRuntimeExp(Multiplication e) '''(«e.left.compileRuntimeExp» «e.op» «e.right.compileRuntimeExp»)'''
+	def dispatch CharSequence compileRuntimeExp(Comparison e) '''(«e.left.compileRuntimeExp» «e.op» «e.right.compileRuntimeExp»)'''
+	def dispatch CharSequence compileRuntimeExp(Equal e) '''(«e.left.compileRuntimeExp» «e.op» «e.right.compileRuntimeExp»)'''
+	def dispatch CharSequence compileRuntimeExp(And e) '''(«e.left.compileRuntimeExp» && «e.right.compileRuntimeExp»)'''
+	def dispatch CharSequence compileRuntimeExp(Or e) '''(«e.left.compileRuntimeExp» || «e.right.compileRuntimeExp»)'''
 
 	def dispatch int evaluate(NumVal e, int lvl) {
 		e.value
@@ -218,11 +238,13 @@ class PokemonGenerator extends AbstractGenerator {
 				GameRuntime runtime = new GameRuntime();
 
 				«FOR player : model.players»
+					runtime.setBadges(«player.badges»);
 					«FOR instance : player.team»
 						runtime.addStartingPokemon(
 							"«instance.species.name»",
 							«evaluate(instance.species.hp, instance.level)»,
-							«evaluate(instance.species.attack, instance.level)»
+							«evaluate(instance.species.attack, instance.level)»,
+							«instance.level»
 						);
 					«ENDFOR»
 				«ENDFOR»
@@ -237,7 +259,7 @@ class PokemonGenerator extends AbstractGenerator {
 						);
 
 						«FOR event : route.events»
-							«event.compileEvent(route.name, model)»
+							«event.compileEvent(route, model)»
 						«ENDFOR»
 
 						«FOR exit : route.exits»
@@ -257,21 +279,21 @@ class PokemonGenerator extends AbstractGenerator {
 		}
 	'''
 
-	def CharSequence compileEvent(Event event, String routeVariableName, Model model) {
+	def CharSequence compileEvent(Event event, Route route, Model model) {
 		if (event instanceof WildEncounter) {
-			return event.compileWildEncounter(routeVariableName, model)
+			return event.compileWildEncounter(route.name, model)
 		}
 
 		if (event instanceof TrainerBattle) {
-			return event.compileTrainerBattle(routeVariableName, model)
+			return event.compileTrainerBattle(route.name, route, model)
 		}
 
 		if (event instanceof RandomItem) {
-			return event.compileRandomItem(routeVariableName)
+			return event.compileRandomItem(route.name)
 		}
 
 		if (event instanceof HealingCenter) {
-			return event.compileHealingCenter(routeVariableName)
+			return event.compileHealingCenter(route.name)
 		}
 
 		return ''''''
@@ -301,19 +323,24 @@ class PokemonGenerator extends AbstractGenerator {
 		}
 	'''
 
-	def compileTrainerBattle(TrainerBattle event, String routeVariableName, Model model) '''
-		«IF !event.opponent.team.empty»
-			«val opponentInstance = event.opponent.team.head»
-			«routeVariableName».addEvent(new TrainerBattleEvent(
-				"«event.name»",
-				"«event.opponent.name»",
-				"«opponentInstance.species.name»",
-				«evaluate(opponentInstance.species.hp, opponentInstance.level)»,
-				«evaluate(opponentInstance.species.attack, opponentInstance.level)»,
-				«IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
-				«IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
-			));
-		«ENDIF»
+	def compileTrainerBattle(TrainerBattle event, String routeVariableName, Route route, Model model) '''
+	    «IF !event.opponent.team.empty»
+	        «val opponentInstance = event.opponent.team.head»
+	        «routeVariableName».addEvent(new TrainerBattleEvent(
+	            "«event.name»",
+	            "«event.opponent.name»",
+	            "«opponentInstance.species.name»",
+	            «evaluate(opponentInstance.species.hp, opponentInstance.level)»,
+	            «evaluate(opponentInstance.species.attack, opponentInstance.level)»,
+	            «IF event.winNext !== null»"«event.winNext.name»"«ELSE»null«ENDIF»,
+	            «IF event.loseNext !== null»"«event.loseNext.name»"«ELSE»null«ENDIF»
+	        ) {
+	            @Override
+	            protected boolean requirementMet(GameRuntime runtime) {
+	                return «IF event.opponent.req !== null»«event.opponent.req.compileRuntimeExp»«ELSE»true«ENDIF»;
+	            }
+	        });
+	    «ENDIF»
 	'''
 
 	def compileRandomItem(RandomItem event, String routeVariableName) '''
@@ -391,19 +418,22 @@ class PokemonGenerator extends AbstractGenerator {
 			private final int maxHp;
 			private int currentHp;
 			private int attack;
+			private int level;
 
-			public PlayerPokemon(String name, int maxHp, int attack) {
+			public PlayerPokemon(String name, int maxHp, int attack, int level) {
 				this.name = name;
 				this.maxHp = maxHp;
 				this.currentHp = maxHp;
 				this.attack = attack;
+				this.level = level;
 			}
 
-			public PlayerPokemon(String name, int maxHp, int currentHp, int attack) {
+			public PlayerPokemon(String name, int maxHp, int currentHp, int attack, int level) {
 				this.name = name;
 				this.maxHp = maxHp;
 				this.currentHp = currentHp;
 				this.attack = attack;
+				this.level = level;
 
 				if (this.currentHp < 0) {
 					this.currentHp = 0;
@@ -414,6 +444,10 @@ class PokemonGenerator extends AbstractGenerator {
 				}
 			}
 
+			public int getLevel(){
+				return level;	
+			}
+			
 			public String getName() {
 				return name;
 			}
@@ -487,22 +521,23 @@ class PokemonGenerator extends AbstractGenerator {
 			private final List<PlayerPokemon> playerParty = new ArrayList<>();
 			private final Map<String, Integer> inventory = new LinkedHashMap<>();
 			private GameRoute currentRoute;
+			private int badges;
 
 			public void addRoute(GameRoute route) {
 				routes.put(route.getName(), route);
 			}
 
-			public void addStartingPokemon(String pokemonName, int maxHp, int attack) {
-				playerParty.add(new PlayerPokemon(pokemonName, maxHp, attack));
+			public void addStartingPokemon(String pokemonName, int maxHp, int attack, int level) {
+				playerParty.add(new PlayerPokemon(pokemonName, maxHp, attack, level));
 			}
 
-			public void addToParty(String pokemonName, int maxHp, int currentHp, int attack) {
+			public void addToParty(String pokemonName, int maxHp, int currentHp, int attack, int level) {
 				if (hasPokemonInParty(pokemonName)) {
 					print(pokemonName + " is already in your party.");
 					return;
 				}
 
-				playerParty.add(new PlayerPokemon(pokemonName, maxHp, currentHp, attack));
+				playerParty.add(new PlayerPokemon(pokemonName, maxHp, currentHp, attack, level));
 				print(pokemonName + " was added to your party.");
 			}
 
@@ -553,6 +588,7 @@ class PokemonGenerator extends AbstractGenerator {
 				for (int i = 0; i < playerParty.size(); i++) {
 					PlayerPokemon pokemon = playerParty.get(i);
 					print((i + 1) + ". " + pokemon.getName()
+						+ " Level: " + pokemon.getLevel()
 						+ " HP: " + pokemon.getCurrentHp() + "/" + pokemon.getMaxHp()
 						+ " Attack: " + pokemon.getAttack());
 				}
@@ -793,6 +829,27 @@ class PokemonGenerator extends AbstractGenerator {
 			public void print(String text) {
 				System.out.println(text);
 			}
+			
+			public void setBadges(int badges){
+				this.badges = badges;
+			}
+			
+			public int getBadges(){
+				return badges;
+			}
+			
+			public int getHighestLevel(){
+				int highest = 0;
+				
+				for (PlayerPokemon pokemon : playerParty){
+					if (pokemon.getLevel() > highest){
+						highest = pokemon.getLevel();
+					}
+				}
+				
+				return highest;
+			}
+			
 		}
 	'''
 
@@ -965,7 +1022,7 @@ class PokemonGenerator extends AbstractGenerator {
 
 				if (roll <= catchChance) {
 					runtime.print("You caught " + enemyPokemonName + "!");
-					runtime.addToParty(enemyPokemonName, enemyStartHp, currentEnemyHp, enemyAttack);
+					runtime.addToParty(enemyPokemonName, enemyStartHp, currentEnemyHp, enemyAttack, 10);
 					runtime.printParty();
 					return winNext;
 				}
@@ -1003,9 +1060,17 @@ class PokemonGenerator extends AbstractGenerator {
 				this.name = name;
 				this.trainerName = trainerName;
 			}
-
+			
+			protected boolean requirementMet(GameRuntime runtime) {
+			    return true;
+			}
+			
 			@Override
 			public String play(GameRuntime runtime) {
+				if (!requirementMet(runtime)){
+					runtime.print("You do not meet the requirement to challenge " + trainerName + ".");
+					return loseNext;
+				}
 				runtime.print("Trainer " + trainerName + " challenges you to a battle!");
 				return runBattle(runtime, trainerName + "'s", false, false);
 			}
